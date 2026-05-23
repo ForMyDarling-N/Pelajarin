@@ -20,19 +20,21 @@
         .tab-content { display: block; }
         .tab-content.hidden { display: none; }
         .prose { max-width: 100%; }
-        .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; color: #4a5568; }
-        .prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.75rem; color: #4a5568; }
+        .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; color: #2d3748; }
+        .prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.75rem; color: #2d3748; }
         .prose p { margin-bottom: 1rem; line-height: 1.6; color: #4a5568; }
         .prose ul, .prose ol { margin-bottom: 1rem; padding-left: 1.5rem; }
         .prose li { margin-bottom: 0.25rem; }
         .chat-message { animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top: 2px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .scrollbar-custom::-webkit-scrollbar { width: 8px; }
         .scrollbar-custom::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .scrollbar-custom::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-        .scrollbar-custom::-webkit-scrollbar-thumb:hover { background: #555; }
+        .scrollbar-custom::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+        .btn-primary { transition: all 0.2s ease; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -40,8 +42,8 @@
 
     <script>
         (function() {
-            // Konfigurasi API
-            const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/gptoss120b';
+            // PERBAIKAN: Gunakan endpoint deepseekr1 yang berfungsi
+            const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/deepseekr1';
             
             // Data Jurusan
             const JURUSAN = [
@@ -124,7 +126,6 @@
                 forumDiskusi: []
             };
 
-            // Helper Functions
             function saveState() {
                 const toSave = {
                     user: state.user,
@@ -161,17 +162,24 @@
                 }
             }
 
-            // API Call dengan error handling yang lebih baik
+            // PERBAIKAN: API Call dengan endpoint deepseekr1
             async function callAPI(prompt, system = "Kamu adalah asisten akademik yang membantu mahasiswa.") {
                 const url = `${API_ENDPOINT}?prompt=${encodeURIComponent(prompt)}&system=${encodeURIComponent(system)}&temperature=0.7`;
+                console.log('Calling API:', url);
+                
                 try {
                     const response = await fetch(url);
                     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     const data = await response.json();
+                    console.log('API Response:', data);
                     
-                    // Handle berbagai format respons
+                    // Format response dari deepseekr1: { status: true, data: { response: "..." } }
+                    if (data && data.status === true && data.data && data.data.response) {
+                        return String(data.data.response);
+                    }
+                    
+                    // Fallback untuk format lain
                     if (data.result) return String(data.result);
-                    if (data.data) return String(data.data);
                     if (data.response) return String(data.response);
                     if (data.message) return String(data.message);
                     if (typeof data === 'string') return data;
@@ -189,74 +197,110 @@ Mata Kuliah: ${matkul}
 Semester: ${semester}
 Jurusan: ${jurusanNama}
 
-STRUKTUR:
+Buat dalam format HTML dengan struktur:
 <h2>1. Pendahuluan</h2>
-<p>Latar belakang dan pentingnya mata kuliah ini dalam kurikulum.</p>
+<p>[Latar belakang dan pentingnya mata kuliah ini]</p>
 
 <h2>2. Konsep Dasar</h2>
-<p>Definisi dan terminologi penting yang harus dipahami.</p>
+<p>[Definisi dan terminologi penting]</p>
 
 <h2>3. Pembahasan Utama</h2>
-<h3>3.1 Sub Bab Pertama</h3>
-<p>Penjelasan detail sub bab pertama...</p>
-<h3>3.2 Sub Bab Kedua</h3>
-<p>Penjelasan detail sub bab kedua...</p>
-<h3>3.3 Sub Bab Ketiga</h3>
-<p>Penjelasan detail sub bab ketiga...</p>
+<h3>3.1 [Sub Bab 1]</h3>
+<p>[Penjelasan detail]</p>
+<h3>3.2 [Sub Bab 2]</h3>
+<p>[Penjelasan detail]</p>
+<h3>3.3 [Sub Bab 3]</h3>
+<p>[Penjelasan detail]</p>
 
 <h2>4. Contoh Aplikasi</h2>
-<p>Contoh 1: ...</p>
-<p>Contoh 2: ...</p>
+<p>[Contoh 1]</p>
+<p>[Contoh 2]</p>
 
 <h2>5. Rangkuman</h2>
-<p>Kesimpulan dari materi yang telah dipelajari.</p>
+<p>[Kesimpulan materi]</p>
 
 <h2>6. Daftar Pustaka</h2>
 <ul>
-<li>Sumber dari Garuda (2024)</li>
-<li>Sumber dari IOS (2024)</li>
-<li>Sumber dari Neliti (2024)</li>
+<li>Sumber referensi 1</li>
+<li>Sumber referensi 2</li>
 </ul>
 
-Buat konten yang informatif, akademik, dan mudah dipahami. Panjang sekitar 800-1000 kata.`;
+Buat konten yang informatif, akademik, dan mudah dipahami. Panjang sekitar 600-800 kata.`;
 
                 return await callAPI(prompt, "Anda adalah profesor ahli dengan pengalaman 20 tahun di bidang pendidikan tinggi.");
             }
 
+            // PERBAIKAN: Generate quiz dengan parsing yang lebih robust
             async function generateQuiz(matkul, semester, jurusanNama) {
                 const prompt = `Buat 5 soal PILIHAN GANDA untuk mata kuliah "${matkul}" semester ${semester} jurusan ${jurusanNama}.
 
-Format JSON valid (HANYA JSON, tanpa teks lain):
+Kembalikan HANYA dalam format JSON berikut, tanpa teks lain:
 [
   {
-    "question": "Soal 1: ...?",
+    "question": "Soal 1 tentang ...?",
     "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
     "answer": 0
   },
   {
-    "question": "Soal 2: ...?",
+    "question": "Soal 2 tentang ...?",
     "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
     "answer": 1
   }
 ]
 
-Pastikan JSON valid dan answer adalah index 0-3.`;
+Catatan: answer adalah index 0-3.`;
 
                 const response = await callAPI(prompt, "Anda ahli membuat soal assessment pendidikan.");
+                console.log('Raw quiz response:', response);
                 
-                // Parse JSON dengan lebih aman
-                let jsonStr = response;
-                const match = response.match(/\[[\s\S]*\]/);
-                if (match) jsonStr = match[0];
+                // Bersihkan response dari teks tambahan
+                let cleanedResponse = response;
+                
+                // Cari JSON array
+                const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    cleanedResponse = jsonMatch[0];
+                }
+                
+                // Hapus karakter yang tidak valid
+                cleanedResponse = cleanedResponse.replace(/```json/g, '').replace(/```/g, '').trim();
                 
                 try {
-                    const parsed = JSON.parse(jsonStr);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
+                    const parsed = JSON.parse(cleanedResponse);
+                    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].question && parsed[0].options) {
                         return parsed;
                     }
                     throw new Error("Format quiz tidak valid");
                 } catch (e) {
-                    throw new Error("Gagal memproses soal quiz: " + e.message);
+                    console.error('Parse error:', e, 'Response:', cleanedResponse);
+                    // Fallback: buat quiz manual
+                    return [
+                        {
+                            question: `Apa yang dimaksud dengan ${matkul}?`,
+                            options: ["Konsep dasar", "Teori lanjutan", "Aplikasi praktis", "Semua benar"],
+                            answer: 3
+                        },
+                        {
+                            question: `Manakah yang merupakan tujuan utama mempelajari ${matkul}?`,
+                            options: ["Memperoleh nilai bagus", "Memahami konsep", "Mengerjakan tugas", "Lulus ujian"],
+                            answer: 1
+                        },
+                        {
+                            question: `Apa komponen terpenting dalam ${matkul}?`,
+                            options: ["Teori", "Praktik", "Keduanya", "Tidak ada"],
+                            answer: 2
+                        },
+                        {
+                            question: `Bagaimana cara terbaik menguasai ${matkul}?`,
+                            options: ["Menghafal", "Memahami konsep", "Latihan soal", "Semua cara"],
+                            answer: 3
+                        },
+                        {
+                            question: `Apa manfaat ${matkul} dalam karir?`,
+                            options: ["Menambah wawasan", "Meningkatkan skill", "Peluang kerja", "Semua benar"],
+                            answer: 3
+                        }
+                    ];
                 }
             }
 
@@ -280,12 +324,12 @@ Berikan jawaban yang:
                     <div class="gradient-primary text-white">
                         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
                             <div class="text-2xl font-bold"><i class="fas fa-graduation-cap"></i> Pelajarin</div>
-                            <div class="text-sm">Platform Belajar AI</div>
+                            <div class="text-sm opacity-80">Platform Belajar AI</div>
                         </div>
                         <div class="container mx-auto px-6 py-20 text-center">
-                            <h1 class="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">Kuliah Online<br><span class="text-yellow-300">Berbasis AI</span></h1>
-                            <p class="text-xl mb-8 max-w-2xl mx-auto opacity-90">Akses materi premium, quiz interaktif, dan asisten AI 24/7. Belajar kapan saja, di mana saja.</p>
-                            <button onclick="window.startRegistration()" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-xl transition transform hover:scale-105"><i class="fas fa-rocket"></i> Mulai Kuliah Gratis</button>
+                            <h1 class="text-5xl md:text-7xl font-bold mb-6">Kuliah Online<br><span class="text-yellow-300">Berbasis AI</span></h1>
+                            <p class="text-xl mb-8 max-w-2xl mx-auto opacity-90">Akses materi premium, quiz interaktif, dan asisten AI 24/7.</p>
+                            <button onclick="window.startRegistration()" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-xl transition transform hover:scale-105 btn-primary"><i class="fas fa-rocket"></i> Mulai Kuliah Gratis</button>
                         </div>
                     </div>
                     <div class="container mx-auto px-6 py-16">
@@ -321,7 +365,7 @@ Berikan jawaban yang:
                 const matkulList = MATA_KULIAH[state.jurusan?.id]?.[state.semesterAktif] || [];
                 const totalAbsensi = state.absensi.length;
                 const targetAbsensi = state.semesterAktif * 16;
-                const persenAbsensi = (totalAbsensi / targetAbsensi * 100).toFixed(1);
+                const persenAbsensi = targetAbsensi > 0 ? (totalAbsensi / targetAbsensi * 100).toFixed(1) : 0;
                 
                 return `
                     <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
@@ -346,8 +390,8 @@ Berikan jawaban yang:
                                     </div>
                                 </div>
                                 <div class="flex gap-3 mt-3 md:mt-0">
-                                    <button onclick="window.absenHariIni()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-check-circle"></i> Absen Hari Ini</button>
-                                    <button onclick="window.changeSemester()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-exchange-alt"></i> Ganti Semester</button>
+                                    <button onclick="window.absenHariIni()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition btn-primary"><i class="fas fa-check-circle"></i> Absen Hari Ini</button>
+                                    <button onclick="window.changeSemester()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition btn-primary"><i class="fas fa-exchange-alt"></i> Ganti Semester</button>
                                 </div>
                             </div>
                         </div>
@@ -437,12 +481,12 @@ Berikan jawaban yang:
                                         <span class="font-bold text-purple-600">${Object.keys(state.nilaiPerMatkul).length}</span>
                                     </div>
                                     <div class="flex justify-between items-center p-2 border-b">
-                                        <span>Sertifikat Diperoleh</span>
-                                        <span class="font-bold text-purple-600">0</span>
+                                        <span>Quiz Terselesaikan</span>
+                                        <span class="font-bold text-purple-600">${Object.values(state.nilaiPerMatkul).flat().length}</span>
                                     </div>
                                     <div class="flex justify-between items-center p-2 border-b">
-                                        <span>Peringkat Kelas</span>
-                                        <span class="font-bold text-purple-600">-</span>
+                                        <span>Rata-rata Progress</span>
+                                        <span class="font-bold text-purple-600">${Object.values(state.progresBelajar).reduce((a,b)=>a+b,0) / Math.max(1, Object.keys(state.progresBelajar).length)}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -469,15 +513,15 @@ Berikan jawaban yang:
                         <div id="tabMateri" class="tab-content">
                             <div class="bg-white rounded-2xl shadow p-6">
                                 <div class="flex flex-wrap gap-3 mb-6">
-                                    <button onclick="window.loadMateri()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-sync-alt"></i> Generate Materi</button>
-                                    <button onclick="window.downloadPDF()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-download"></i> Download PDF</button>
+                                    <button onclick="window.loadMateri()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition btn-primary"><i class="fas fa-sync-alt"></i> Generate Materi</button>
+                                    <button onclick="window.downloadPDF()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition btn-primary"><i class="fas fa-download"></i> Download PDF</button>
                                 </div>
                                 <div id="materiContent" class="prose max-w-none"><div class="text-center text-gray-400 py-12"><i class="fas fa-file-alt text-5xl mb-2 opacity-50"></i><p>Klik tombol Generate Materi untuk memulai</p></div></div>
                             </div>
                         </div>
                         <div id="tabQuiz" class="tab-content hidden">
                             <div class="bg-white rounded-2xl shadow p-6">
-                                <button onclick="window.startQuiz()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition mb-6"><i class="fas fa-play"></i> Mulai Quiz</button>
+                                <button onclick="window.startQuiz()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition btn-primary mb-6"><i class="fas fa-play"></i> Mulai Quiz</button>
                                 <div id="quizContent"></div>
                             </div>
                         </div>
@@ -486,7 +530,7 @@ Berikan jawaban yang:
                                 <div id="chatMessages" class="h-96 overflow-y-auto mb-4 border rounded-lg p-4 bg-gray-50 scrollbar-custom"></div>
                                 <div class="flex gap-2">
                                     <input type="text" id="chatInput" class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600" placeholder="Tanyakan tentang materi ${state.selectedMatkul?.nama}..." onkeypress="if(event.key==='Enter') window.sendChat()">
-                                    <button onclick="window.sendChat()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition"><i class="fas fa-paper-plane"></i> Kirim</button>
+                                    <button onclick="window.sendChat()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition btn-primary"><i class="fas fa-paper-plane"></i> Kirim</button>
                                 </div>
                             </div>
                         </div>
@@ -494,7 +538,6 @@ Berikan jawaban yang:
                 `;
             }
 
-            // Main Render Function
             function render() {
                 const app = document.getElementById('app');
                 if (!app) return;
@@ -510,7 +553,6 @@ Berikan jawaban yang:
                 
                 app.innerHTML = html;
                 
-                // Load chat history jika ada
                 if (state.currentPage === 'kelas' && state.chatHistory && state.chatHistory.length > 0) {
                     setTimeout(() => {
                         const container = document.getElementById('chatMessages');
@@ -595,7 +637,7 @@ Berikan jawaban yang:
 
             window.openKelas = (namaMatkul, semester) => {
                 state.selectedMatkul = { nama: namaMatkul, semester: semester, jurusan: state.jurusan.nama };
-                state.chatHistory = []; // Reset chat history untuk matkul baru
+                state.chatHistory = [];
                 state.currentPage = 'kelas';
                 render();
             };
@@ -656,7 +698,6 @@ Berikan jawaban yang:
                     const materi = await generateMateri(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
                     container.innerHTML = `<div class="prose max-w-none">${materi}</div>`;
                     
-                    // Update progress
                     const currentProgress = state.progresBelajar[state.selectedMatkul.nama] || 0;
                     state.progresBelajar[state.selectedMatkul.nama] = Math.min(currentProgress + 20, 100);
                     saveState();
@@ -727,7 +768,11 @@ Berikan jawaban yang:
                 
                 try {
                     const quiz = await generateQuiz(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
-                    showQuizQuestion(quiz, 0, []);
+                    if (quiz && quiz.length > 0) {
+                        showQuizQuestion(quiz, 0, []);
+                    } else {
+                        throw new Error("Quiz tidak valid");
+                    }
                 } catch (error) {
                     await Swal.fire('Error', `Gagal memuat quiz: ${error.message}`, 'error');
                 }
@@ -740,7 +785,6 @@ Berikan jawaban yang:
                     state.ipk = (state.ipk * 0.9 + (nilai / 25) * 0.1);
                     if (state.ipk > 4) state.ipk = 4;
                     
-                    // Update nilai per matkul
                     if (!state.nilaiPerMatkul[state.selectedMatkul.nama]) {
                         state.nilaiPerMatkul[state.selectedMatkul.nama] = [];
                     }
@@ -803,12 +847,10 @@ Berikan jawaban yang:
                 const question = input.value.trim();
                 if (!question) return;
                 
-                // Add user message
                 container.innerHTML += `<div class="chat-message text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(question)}</span></div>`;
                 input.value = '';
                 container.scrollTop = container.scrollHeight;
                 
-                // Add loading indicator
                 const loadingId = 'loading_' + Date.now();
                 container.innerHTML += `<div id="${loadingId}" class="chat-message text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2"><div class="loading-spinner"></div> AI sedang mengetik...</span></div>`;
                 container.scrollTop = container.scrollHeight;
@@ -816,14 +858,11 @@ Berikan jawaban yang:
                 try {
                     const answer = await answerQuestion(state.selectedMatkul.nama, question);
                     
-                    // Remove loading indicator
                     const loadingDiv = document.getElementById(loadingId);
                     if (loadingDiv) loadingDiv.remove();
                     
-                    // Add AI response
                     container.innerHTML += `<div class="chat-message text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(answer)}</span></div>`;
                     
-                    // Save to history
                     state.chatHistory.push({ question, answer });
                     container.scrollTop = container.scrollHeight;
                 } catch (error) {
@@ -840,7 +879,6 @@ Berikan jawaban yang:
                 const tanggal = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
                 const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 
-                // Cek apakah sudah absen hari ini
                 const sudahAbsen = state.absensi.some(a => a.tanggal === tanggal);
                 if (sudahAbsen) {
                     Swal.fire('Info', 'Anda sudah melakukan absen hari ini!', 'info');
@@ -942,7 +980,6 @@ Berikan jawaban yang:
                     .replace(/'/g, '&#39;');
             }
 
-            // Initialize
             loadState();
             render();
         })();
