@@ -19,6 +19,20 @@
         .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
         .tab-content { display: block; }
         .tab-content.hidden { display: none; }
+        .prose { max-width: 100%; }
+        .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; color: #4a5568; }
+        .prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.75rem; color: #4a5568; }
+        .prose p { margin-bottom: 1rem; line-height: 1.6; color: #4a5568; }
+        .prose ul, .prose ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+        .prose li { margin-bottom: 0.25rem; }
+        .chat-message { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .scrollbar-custom::-webkit-scrollbar { width: 8px; }
+        .scrollbar-custom::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .scrollbar-custom::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -26,16 +40,19 @@
 
     <script>
         (function() {
+            // Konfigurasi API
             const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/gptoss120b';
             
+            // Data Jurusan
             const JURUSAN = [
-                { id: 1, nama: "Teknik Informatika", icon: "fa-laptop-code", warna: "from-blue-500 to-indigo-600", deskripsi: "Pelajari pemrograman, AI, dan pengembangan software", prospek: "Software Engineer, Data Scientist, Cyber Security Analyst", totalSemester: 8 },
-                { id: 2, nama: "Manajemen Bisnis", icon: "fa-chart-line", warna: "from-green-500 to-teal-600", deskripsi: "Kuasai strategi bisnis, marketing digital, dan kewirausahaan", prospek: "Business Consultant, Marketing Manager, Entrepreneur", totalSemester: 8 },
-                { id: 3, nama: "Akuntansi", icon: "fa-calculator", warna: "from-yellow-500 to-orange-600", deskripsi: "Pahami laporan keuangan, audit, dan perpajakan", prospek: "Akuntan Publik, Auditor, Financial Analyst", totalSemester: 8 },
-                { id: 4, nama: "Psikologi", icon: "fa-brain", warna: "from-purple-500 to-pink-600", deskripsi: "Eksplorasi perilaku manusia dan konseling", prospek: "Psikolog, HR Specialist, Konselor", totalSemester: 8 },
-                { id: 5, nama: "Hukum", icon: "fa-gavel", warna: "from-red-500 to-rose-600", deskripsi: "Pelajari sistem hukum dan advokasi", prospek: "Advokat, Legal Counsel, Jaksa/Hakim", totalSemester: 8 }
+                { id: 1, nama: "Teknik Informatika", icon: "fa-laptop-code", warna: "from-blue-500 to-indigo-600", deskripsi: "Pelajari pemrograman, AI, dan pengembangan software", prospek: "Software Engineer, Data Scientist, Cyber Security Analyst", totalSemester: 8, totalSKS: 144 },
+                { id: 2, nama: "Manajemen Bisnis", icon: "fa-chart-line", warna: "from-green-500 to-teal-600", deskripsi: "Kuasai strategi bisnis, marketing digital, dan kewirausahaan", prospek: "Business Consultant, Marketing Manager, Entrepreneur", totalSemester: 8, totalSKS: 144 },
+                { id: 3, nama: "Akuntansi", icon: "fa-calculator", warna: "from-yellow-500 to-orange-600", deskripsi: "Pahami laporan keuangan, audit, dan perpajakan", prospek: "Akuntan Publik, Auditor, Financial Analyst", totalSemester: 8, totalSKS: 144 },
+                { id: 4, nama: "Psikologi", icon: "fa-brain", warna: "from-purple-500 to-pink-600", deskripsi: "Eksplorasi perilaku manusia dan konseling", prospek: "Psikolog, HR Specialist, Konselor", totalSemester: 8, totalSKS: 144 },
+                { id: 5, nama: "Hukum", icon: "fa-gavel", warna: "from-red-500 to-rose-600", deskripsi: "Pelajari sistem hukum dan advokasi", prospek: "Advokat, Legal Counsel, Jaksa/Hakim", totalSemester: 8, totalSKS: 144 }
             ];
 
+            // Data Mata Kuliah per Jurusan per Semester
             const MATA_KULIAH = {
                 1: {
                     1: ["Dasar Pemrograman", "Matematika Diskrit", "Sistem Digital", "Algoritma & Struktur Data", "Pengantar Teknologi Informasi", "Bahasa Inggris Teknis"],
@@ -89,26 +106,36 @@
                 }
             };
 
+            // State Management
             let state = {
                 currentPage: 'landing',
                 user: null,
                 jurusan: null,
                 semesterAktif: 1,
                 ipk: 0,
+                totalSks: 0,
                 selectedMatkul: null,
                 materiCache: {},
                 quizCache: {},
                 chatHistory: [],
-                absensi: []
+                absensi: [],
+                nilaiPerMatkul: {},
+                progresBelajar: {},
+                forumDiskusi: []
             };
 
+            // Helper Functions
             function saveState() {
                 const toSave = {
                     user: state.user,
                     jurusan: state.jurusan,
                     semesterAktif: state.semesterAktif,
                     ipk: state.ipk,
-                    absensi: state.absensi
+                    totalSks: state.totalSks,
+                    absensi: state.absensi,
+                    nilaiPerMatkul: state.nilaiPerMatkul,
+                    progresBelajar: state.progresBelajar,
+                    forumDiskusi: state.forumDiskusi
                 };
                 localStorage.setItem('pelajarin_state', JSON.stringify(toSave));
             }
@@ -122,7 +149,11 @@
                         state.jurusan = data.jurusan;
                         state.semesterAktif = data.semesterAktif || 1;
                         state.ipk = data.ipk || 0;
+                        state.totalSks = data.totalSks || 0;
                         state.absensi = data.absensi || [];
+                        state.nilaiPerMatkul = data.nilaiPerMatkul || {};
+                        state.progresBelajar = data.progresBelajar || {};
+                        state.forumDiskusi = data.forumDiskusi || [];
                         if (state.user && state.jurusan) {
                             state.currentPage = 'dashboard';
                         }
@@ -130,16 +161,25 @@
                 }
             }
 
-            async function callAI(prompt, system = "Kamu adalah asisten akademik yang membantu mahasiswa.") {
+            // API Call dengan error handling yang lebih baik
+            async function callAPI(prompt, system = "Kamu adalah asisten akademik yang membantu mahasiswa.") {
                 const url = `${API_ENDPOINT}?prompt=${encodeURIComponent(prompt)}&system=${encodeURIComponent(system)}&temperature=0.7`;
                 try {
                     const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     const data = await response.json();
-                    return data.result || data.data || data.response || "Maaf, tidak ada respons.";
+                    
+                    // Handle berbagai format respons
+                    if (data.result) return String(data.result);
+                    if (data.data) return String(data.data);
+                    if (data.response) return String(data.response);
+                    if (data.message) return String(data.message);
+                    if (typeof data === 'string') return data;
+                    
+                    throw new Error("Format respons tidak dikenal");
                 } catch (error) {
                     console.error('API Error:', error);
-                    throw new Error(`Gagal: ${error.message}`);
+                    throw new Error(`Gagal terhubung ke AI: ${error.message}`);
                 }
             }
 
@@ -150,199 +190,390 @@ Semester: ${semester}
 Jurusan: ${jurusanNama}
 
 STRUKTUR:
-1. Pendahuluan (latar belakang dan pentingnya)
-2. Konsep Dasar (definisi dan terminologi)
-3. Pembahasan Utama (minimal 3 sub-bab)
-4. Contoh Aplikasi (2 contoh nyata)
-5. Rangkuman
-6. Daftar Pustaka (dari Garuda, IOS, Neliti)
+<h2>1. Pendahuluan</h2>
+<p>Latar belakang dan pentingnya mata kuliah ini dalam kurikulum.</p>
 
-Format HTML dengan heading h2/h3, paragraf, bullet points.
-Panjang: 600-800 kata.
-Bahasa Indonesia formal akademik.`;
+<h2>2. Konsep Dasar</h2>
+<p>Definisi dan terminologi penting yang harus dipahami.</p>
 
-                return await callAI(prompt, "Anda adalah profesor ahli dengan pengalaman 20 tahun.");
+<h2>3. Pembahasan Utama</h2>
+<h3>3.1 Sub Bab Pertama</h3>
+<p>Penjelasan detail sub bab pertama...</p>
+<h3>3.2 Sub Bab Kedua</h3>
+<p>Penjelasan detail sub bab kedua...</p>
+<h3>3.3 Sub Bab Ketiga</h3>
+<p>Penjelasan detail sub bab ketiga...</p>
+
+<h2>4. Contoh Aplikasi</h2>
+<p>Contoh 1: ...</p>
+<p>Contoh 2: ...</p>
+
+<h2>5. Rangkuman</h2>
+<p>Kesimpulan dari materi yang telah dipelajari.</p>
+
+<h2>6. Daftar Pustaka</h2>
+<ul>
+<li>Sumber dari Garuda (2024)</li>
+<li>Sumber dari IOS (2024)</li>
+<li>Sumber dari Neliti (2024)</li>
+</ul>
+
+Buat konten yang informatif, akademik, dan mudah dipahami. Panjang sekitar 800-1000 kata.`;
+
+                return await callAPI(prompt, "Anda adalah profesor ahli dengan pengalaman 20 tahun di bidang pendidikan tinggi.");
             }
 
             async function generateQuiz(matkul, semester, jurusanNama) {
-                const prompt = `Buat 5 soal PILIHAN GANDA untuk "${matkul}" semester ${semester} jurusan ${jurusanNama}.
+                const prompt = `Buat 5 soal PILIHAN GANDA untuk mata kuliah "${matkul}" semester ${semester} jurusan ${jurusanNama}.
 
-Format JSON valid:
+Format JSON valid (HANYA JSON, tanpa teks lain):
 [
-  {"question": "soal 1", "options": ["a","b","c","d"], "answer": 0},
-  {"question": "soal 2", "options": ["a","b","c","d"], "answer": 1}
+  {
+    "question": "Soal 1: ...?",
+    "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
+    "answer": 0
+  },
+  {
+    "question": "Soal 2: ...?",
+    "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
+    "answer": 1
+  }
 ]
 
-Kirim HANYA JSON, tanpa teks lain.`;
+Pastikan JSON valid dan answer adalah index 0-3.`;
 
-                const response = await callAI(prompt, "Anda ahli membuat soal assessment.");
+                const response = await callAPI(prompt, "Anda ahli membuat soal assessment pendidikan.");
+                
+                // Parse JSON dengan lebih aman
+                let jsonStr = response;
                 const match = response.match(/\[[\s\S]*\]/);
-                if (match) return JSON.parse(match[0]);
-                throw new Error("Format quiz tidak valid");
+                if (match) jsonStr = match[0];
+                
+                try {
+                    const parsed = JSON.parse(jsonStr);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                    throw new Error("Format quiz tidak valid");
+                } catch (e) {
+                    throw new Error("Gagal memproses soal quiz: " + e.message);
+                }
             }
 
-            function render() {
-                const app = document.getElementById('app');
-                if (!app) return;
+            async function answerQuestion(matkul, question) {
+                const prompt = `Sebagai asisten dosen untuk mata kuliah "${matkul}", jawab pertanyaan mahasiswa berikut dengan jelas, akurat, dan edukatif:
 
-                if (state.currentPage === 'landing') {
-                    app.innerHTML = `
-                        <div class="gradient-primary text-white">
-                            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-                                <div class="text-2xl font-bold"><i class="fas fa-graduation-cap"></i> Pelajarin</div>
-                            </div>
-                            <div class="container mx-auto px-6 py-20 text-center">
-                                <h1 class="text-5xl md:text-7xl font-bold mb-6">Kuliah Online<br><span class="text-yellow-300">Berbasis AI</span></h1>
-                                <p class="text-xl mb-8 max-w-2xl mx-auto">Akses materi dari referensi Garuda, IOS, Neliti. Belajar kapan saja dengan AI.</p>
-                                <button onclick="startRegistration()" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-xl"><i class="fas fa-rocket"></i> Mulai Kuliah Gratis</button>
-                            </div>
+Pertanyaan: ${question}
+
+Berikan jawaban yang:
+1. Lengkap dan informatif
+2. Disertai contoh jika memungkinkan
+3. Bahasa Indonesia formal akademik
+4. Panjang sekitar 150-300 kata`;
+
+                return await callAPI(prompt, "Anda adalah asisten dosen yang ramah dan berpengetahuan luas.");
+            }
+
+            // UI Rendering Functions
+            function renderLanding() {
+                return `
+                    <div class="gradient-primary text-white">
+                        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+                            <div class="text-2xl font-bold"><i class="fas fa-graduation-cap"></i> Pelajarin</div>
+                            <div class="text-sm">Platform Belajar AI</div>
                         </div>
-                        <div class="container mx-auto px-6 py-16">
-                            <h2 class="text-3xl font-bold text-center mb-12">Program Studi <span class="text-purple-600">Terbaik</span></h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                ${JURUSAN.map(j => `
-                                    <div onclick="selectJurusan(${j.id}, '${j.nama}')" class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer card-hover">
-                                        <div class="h-28 bg-gradient-to-r ${j.warna} flex items-center justify-center">
-                                            <i class="fas ${j.icon} text-5xl text-white"></i>
-                                        </div>
-                                        <div class="p-5">
-                                            <h3 class="text-xl font-bold mb-2">${j.nama}</h3>
-                                            <p class="text-gray-600 text-sm">${j.deskripsi}</p>
+                        <div class="container mx-auto px-6 py-20 text-center">
+                            <h1 class="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">Kuliah Online<br><span class="text-yellow-300">Berbasis AI</span></h1>
+                            <p class="text-xl mb-8 max-w-2xl mx-auto opacity-90">Akses materi premium, quiz interaktif, dan asisten AI 24/7. Belajar kapan saja, di mana saja.</p>
+                            <button onclick="window.startRegistration()" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-xl transition transform hover:scale-105"><i class="fas fa-rocket"></i> Mulai Kuliah Gratis</button>
+                        </div>
+                    </div>
+                    <div class="container mx-auto px-6 py-16">
+                        <h2 class="text-3xl font-bold text-center mb-12">Program Studi <span class="text-purple-600">Terbaik</span></h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${JURUSAN.map(j => `
+                                <div onclick="window.selectJurusan(${j.id}, '${j.nama}')" class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer card-hover">
+                                    <div class="h-28 bg-gradient-to-r ${j.warna} flex items-center justify-center">
+                                        <i class="fas ${j.icon} text-5xl text-white"></i>
+                                    </div>
+                                    <div class="p-5">
+                                        <h3 class="text-xl font-bold mb-2">${j.nama}</h3>
+                                        <p class="text-gray-600 text-sm mb-3">${j.deskripsi}</p>
+                                        <div class="flex justify-between text-xs text-gray-500">
+                                            <span><i class="fas fa-clock"></i> ${j.totalSemester} Semester</span>
+                                            <span><i class="fas fa-chalkboard-user"></i> ${j.totalSKS} SKS</span>
                                         </div>
                                     </div>
-                                `).join('')}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 text-white py-12">
+                        <div class="container mx-auto px-6 text-center">
+                            <p class="text-gray-400">© 2024 Pelajarin - Platform Belajar Online Generasi Terbaru</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderDashboard() {
+                const jurusanData = JURUSAN.find(j => j.id === state.jurusan?.id);
+                const matkulList = MATA_KULIAH[state.jurusan?.id]?.[state.semesterAktif] || [];
+                const totalAbsensi = state.absensi.length;
+                const targetAbsensi = state.semesterAktif * 16;
+                const persenAbsensi = (totalAbsensi / targetAbsensi * 100).toFixed(1);
+                
+                return `
+                    <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
+                        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                            <div class="text-xl font-bold"><i class="fas fa-graduation-cap"></i> Pelajarin</div>
+                            <div class="flex items-center gap-4">
+                                <span class="text-sm"><i class="fas fa-user-graduate"></i> ${state.user?.nama || 'Mahasiswa'}</span>
+                                <button onclick="window.logout()" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition"><i class="fas fa-sign-out-alt"></i> Keluar</button>
                             </div>
                         </div>
-                    `;
-                } 
-                else if (state.currentPage === 'dashboard') {
-                    const jurusanData = JURUSAN.find(j => j.id === state.jurusan?.id);
-                    const matkulList = MATA_KULIAH[state.jurusan?.id]?.[state.semesterAktif] || [];
-                    
-                    app.innerHTML = `
-                        <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
-                            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                                <div class="text-xl font-bold"><i class="fas fa-graduation-cap"></i> Pelajarin</div>
-                                <div class="flex items-center gap-4">
-                                    <span>${state.user?.nama || 'Mahasiswa'}</span>
-                                    <button onclick="logout()" class="bg-white/20 px-3 py-1 rounded-lg"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
+                    <div class="container mx-auto px-4 py-6">
+                        <!-- Welcome Banner -->
+                        <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 mb-6">
+                            <div class="flex flex-wrap justify-between items-center">
+                                <div>
+                                    <h1 class="text-2xl font-bold">Halo, ${state.user?.nama || 'Mahasiswa'}! 👋</h1>
+                                    <p class="text-gray-700">${jurusanData?.nama} | Semester ${state.semesterAktif} dari ${jurusanData?.totalSemester}</p>
+                                    <div class="mt-2 flex gap-2">
+                                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs"><i class="fas fa-check-circle"></i> Aktif</span>
+                                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"><i class="fas fa-calendar"></i> TA 2024/2025</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3 mt-3 md:mt-0">
+                                    <button onclick="window.absenHariIni()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-check-circle"></i> Absen Hari Ini</button>
+                                    <button onclick="window.changeSemester()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-exchange-alt"></i> Ganti Semester</button>
                                 </div>
                             </div>
                         </div>
-                        <div class="container mx-auto px-4 py-6">
-                            <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 mb-6">
-                                <div class="flex flex-wrap justify-between items-center">
-                                    <div>
-                                        <h1 class="text-2xl font-bold">Halo, ${state.user?.nama || 'Mahasiswa'}! 👋</h1>
-                                        <p>${jurusanData?.nama} | Semester ${state.semesterAktif}</p>
-                                    </div>
-                                    <button onclick="absenHariIni()" class="bg-green-500 text-white px-4 py-2 rounded-lg"><i class="fas fa-check-circle"></i> Absen</button>
-                                </div>
+                        
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-white rounded-xl p-4 shadow border-l-4 border-purple-500">
+                                <div class="text-gray-500 text-sm">IPK Kumulatif</div>
+                                <div class="text-2xl font-bold text-purple-600">${state.ipk.toFixed(2)}</div>
+                                <div class="text-xs text-gray-400 mt-1">Skala 4.00</div>
                             </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-purple-500"><div class="text-gray-500 text-sm">IPK</div><div class="text-2xl font-bold">${state.ipk.toFixed(2)}</div></div>
-                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-blue-500"><div class="text-gray-500 text-sm">SKS</div><div class="text-2xl font-bold">${state.semesterAktif * 18}</div></div>
-                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-green-500"><div class="text-gray-500 text-sm">MK Semester</div><div class="text-2xl font-bold">${matkulList.length}</div></div>
-                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-orange-500"><div class="text-gray-500 text-sm">Progress</div><div class="text-2xl font-bold">${Math.round((state.semesterAktif-1)/8*100)}%</div></div>
+                            <div class="bg-white rounded-xl p-4 shadow border-l-4 border-blue-500">
+                                <div class="text-gray-500 text-sm">Total SKS</div>
+                                <div class="text-2xl font-bold text-blue-600">${state.totalSks}</div>
+                                <div class="text-xs text-gray-400 mt-1">Target: 144 SKS</div>
                             </div>
+                            <div class="bg-white rounded-xl p-4 shadow border-l-4 border-green-500">
+                                <div class="text-gray-500 text-sm">MK Semester Ini</div>
+                                <div class="text-2xl font-bold text-green-600">${matkulList.length}</div>
+                                <div class="text-xs text-gray-400 mt-1">Mata Kuliah Aktif</div>
+                            </div>
+                            <div class="bg-white rounded-xl p-4 shadow border-l-4 border-orange-500">
+                                <div class="text-gray-500 text-sm">Progress Kuliah</div>
+                                <div class="text-2xl font-bold text-orange-600">${Math.round((state.semesterAktif-1)/8*100)}%</div>
+                                <div class="text-xs text-gray-400 mt-1">Semester ${state.semesterAktif}/8</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mata Kuliah Section -->
+                        <div class="bg-white rounded-2xl shadow p-6 mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-bold"><i class="fas fa-book-open text-purple-600"></i> Mata Kuliah Semester ${state.semesterAktif}</h2>
+                                <div class="text-sm text-gray-500"><i class="fas fa-info-circle"></i> Klik kartu untuk mulai belajar</div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                ${matkulList.map((mk, idx) => {
+                                    const progress = state.progresBelajar[mk] || 0;
+                                    return `
+                                        <div onclick="window.openKelas('${mk.replace(/'/g, "\\'")}', ${state.semesterAktif})" class="border rounded-xl p-3 hover:shadow-md cursor-pointer transition group">
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center gap-3">
+                                                    <span class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-semibold">${idx+1}</span>
+                                                    <span class="font-medium group-hover:text-purple-600">${mk}</span>
+                                                </div>
+                                                <i class="fas fa-chevron-right text-gray-400 group-hover:text-purple-600"></i>
+                                            </div>
+                                            ${progress > 0 ? `<div class="mt-2"><div class="bg-gray-200 rounded-full h-1.5"><div class="bg-green-500 rounded-full h-1.5" style="width: ${progress}%"></div></div><div class="text-xs text-gray-500 mt-1">Progress: ${progress}%</div></div>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Absensi dan Informasi Lainnya -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="bg-white rounded-2xl shadow p-6">
-                                <h2 class="text-xl font-bold mb-4"><i class="fas fa-book-open text-purple-600"></i> Mata Kuliah Semester ${state.semesterAktif}</h2>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    ${matkulList.map((mk, idx) => `
-                                        <div onclick="openKelas('${mk.replace(/'/g, "\\'")}', ${state.semesterAktif})" class="border rounded-xl p-3 hover:shadow-md cursor-pointer flex justify-between items-center">
-                                            <span><span class="text-purple-600 font-semibold">${String(idx+1).padStart(2,'0')}</span> ${mk}</span>
-                                            <i class="fas fa-chevron-right text-gray-400"></i>
+                                <h2 class="text-xl font-bold mb-4"><i class="fas fa-history text-purple-600"></i> Riwayat Absensi</h2>
+                                <div class="mb-3">
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>Kehadiran Semester Ini</span>
+                                        <span>${totalAbsensi} / ${targetAbsensi} (${persenAbsensi}%)</span>
+                                    </div>
+                                    <div class="bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-500 rounded-full h-2" style="width: ${Math.min(persenAbsensi, 100)}%"></div>
+                                    </div>
+                                </div>
+                                <div class="max-h-48 overflow-y-auto space-y-2 scrollbar-custom">
+                                    ${state.absensi.length === 0 ? '<p class="text-gray-400 text-center py-4">Belum ada absensi. Klik tombol Absen di atas!</p>' : state.absensi.slice(-10).reverse().map(a => `
+                                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                            <span><i class="fas fa-calendar-day text-purple-500"></i> ${a.tanggal}</span>
+                                            <span class="text-sm text-gray-500"><i class="fas fa-clock"></i> ${a.jam}</span>
+                                            <span class="text-green-500 text-sm"><i class="fas fa-check-circle"></i> Hadir</span>
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
-                            <div class="bg-white rounded-2xl shadow p-6 mt-6">
-                                <h2 class="text-xl font-bold mb-4"><i class="fas fa-history text-purple-600"></i> Riwayat Absensi</h2>
-                                <div id="riwayatAbsensi" class="text-sm text-gray-600">${state.absensi.length === 0 ? '<p>Belum ada absensi</p>' : state.absensi.slice(-5).reverse().map(a => `<div>📅 ${a.tanggal} - ${a.jam}</div>`).join('')}</div>
+                            
+                            <div class="bg-white rounded-2xl shadow p-6">
+                                <h2 class="text-xl font-bold mb-4"><i class="fas fa-chart-line text-purple-600"></i> Statistik Akademik</h2>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-2 border-b">
+                                        <span>Rata-rata Nilai</span>
+                                        <span class="font-bold text-purple-600">${(state.ipk * 25).toFixed(0)}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2 border-b">
+                                        <span>Mata Kuliah Diambil</span>
+                                        <span class="font-bold text-purple-600">${Object.keys(state.nilaiPerMatkul).length}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2 border-b">
+                                        <span>Sertifikat Diperoleh</span>
+                                        <span class="font-bold text-purple-600">0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-2 border-b">
+                                        <span>Peringkat Kelas</span>
+                                        <span class="font-bold text-purple-600">-</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    `;
+                    </div>
+                `;
+            }
+
+            function renderKelas() {
+                return `
+                    <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
+                        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                            <button onclick="window.backToDashboard()" class="hover:opacity-80 transition"><i class="fas fa-arrow-left"></i> Kembali</button>
+                            <div class="font-semibold">${state.selectedMatkul?.nama || 'Mata Kuliah'}</div>
+                            <div class="w-16"></div>
+                        </div>
+                    </div>
+                    <div class="container mx-auto px-4 py-6">
+                        <div class="flex border-b mb-6">
+                            <button onclick="window.switchTab('materi')" id="btnMateri" class="px-6 py-3 font-semibold border-b-2 border-purple-600 text-purple-600 transition">📖 Materi</button>
+                            <button onclick="window.switchTab('quiz')" id="btnQuiz" class="px-6 py-3 font-semibold text-gray-500 hover:text-purple-600 transition">✏️ Quiz</button>
+                            <button onclick="window.switchTab('chat')" id="btnChat" class="px-6 py-3 font-semibold text-gray-500 hover:text-purple-600 transition">💬 Chat AI</button>
+                        </div>
+                        <div id="tabMateri" class="tab-content">
+                            <div class="bg-white rounded-2xl shadow p-6">
+                                <div class="flex flex-wrap gap-3 mb-6">
+                                    <button onclick="window.loadMateri()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-sync-alt"></i> Generate Materi</button>
+                                    <button onclick="window.downloadPDF()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition"><i class="fas fa-download"></i> Download PDF</button>
+                                </div>
+                                <div id="materiContent" class="prose max-w-none"><div class="text-center text-gray-400 py-12"><i class="fas fa-file-alt text-5xl mb-2 opacity-50"></i><p>Klik tombol Generate Materi untuk memulai</p></div></div>
+                            </div>
+                        </div>
+                        <div id="tabQuiz" class="tab-content hidden">
+                            <div class="bg-white rounded-2xl shadow p-6">
+                                <button onclick="window.startQuiz()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition mb-6"><i class="fas fa-play"></i> Mulai Quiz</button>
+                                <div id="quizContent"></div>
+                            </div>
+                        </div>
+                        <div id="tabChat" class="tab-content hidden">
+                            <div class="bg-white rounded-2xl shadow p-6">
+                                <div id="chatMessages" class="h-96 overflow-y-auto mb-4 border rounded-lg p-4 bg-gray-50 scrollbar-custom"></div>
+                                <div class="flex gap-2">
+                                    <input type="text" id="chatInput" class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600" placeholder="Tanyakan tentang materi ${state.selectedMatkul?.nama}..." onkeypress="if(event.key==='Enter') window.sendChat()">
+                                    <button onclick="window.sendChat()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition"><i class="fas fa-paper-plane"></i> Kirim</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Main Render Function
+            function render() {
+                const app = document.getElementById('app');
+                if (!app) return;
+
+                let html = '';
+                if (state.currentPage === 'landing') {
+                    html = renderLanding();
+                } else if (state.currentPage === 'dashboard') {
+                    html = renderDashboard();
+                } else if (state.currentPage === 'kelas') {
+                    html = renderKelas();
                 }
-                else if (state.currentPage === 'kelas') {
-                    app.innerHTML = `
-                        <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
-                            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                                <button onclick="backToDashboard()" class="hover:opacity-80"><i class="fas fa-arrow-left"></i> Kembali</button>
-                                <div class="font-semibold">${state.selectedMatkul?.nama || 'Mata Kuliah'}</div>
-                                <div class="w-16"></div>
-                            </div>
-                        </div>
-                        <div class="container mx-auto px-4 py-6">
-                            <div class="flex border-b mb-6">
-                                <button onclick="switchTab('materi')" id="btnMateri" class="px-6 py-3 font-semibold border-b-2 border-purple-600 text-purple-600">📖 Materi</button>
-                                <button onclick="switchTab('quiz')" id="btnQuiz" class="px-6 py-3 font-semibold text-gray-500">✏️ Quiz</button>
-                                <button onclick="switchTab('chat')" id="btnChat" class="px-6 py-3 font-semibold text-gray-500">💬 Chat AI</button>
-                            </div>
-                            <div id="tabMateri" class="tab-content">
-                                <div class="bg-white rounded-2xl shadow p-6">
-                                    <div class="flex gap-3 mb-6">
-                                        <button onclick="loadMateri()" class="bg-purple-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-sync-alt"></i> Generate Materi</button>
-                                        <button onclick="downloadPDF()" class="bg-red-500 text-white px-4 py-2 rounded-lg"><i class="fas fa-download"></i> Download PDF</button>
-                                    </div>
-                                    <div id="materiContent" class="prose max-w-none"><div class="text-center text-gray-400 py-12"><i class="fas fa-file-alt text-5xl mb-2 opacity-50"></i><p>Klik Generate Materi</p></div></div>
-                                </div>
-                            </div>
-                            <div id="tabQuiz" class="tab-content hidden">
-                                <div class="bg-white rounded-2xl shadow p-6">
-                                    <button onclick="startQuiz()" class="bg-green-600 text-white px-4 py-2 rounded-lg mb-6"><i class="fas fa-play"></i> Mulai Quiz</button>
-                                    <div id="quizContent"></div>
-                                </div>
-                            </div>
-                            <div id="tabChat" class="tab-content hidden">
-                                <div class="bg-white rounded-2xl shadow p-6">
-                                    <div id="chatMessages" class="h-96 overflow-y-auto mb-4 border rounded-lg p-4 bg-gray-50"></div>
-                                    <div class="flex gap-2">
-                                        <input type="text" id="chatInput" class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-purple-600" placeholder="Tanya tentang materi...">
-                                        <button onclick="sendChat()" class="bg-purple-600 text-white px-6 py-2 rounded-lg"><i class="fas fa-paper-plane"></i> Kirim</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    if (state.chatHistory && state.chatHistory.length > 0) {
-                        setTimeout(() => {
-                            const container = document.getElementById('chatMessages');
-                            if (container) {
-                                container.innerHTML = state.chatHistory.map(h => `
-                                    <div class="text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(h.question)}</span></div>
-                                    <div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(h.answer)}</span></div>
-                                `).join('');
-                            }
-                        }, 100);
-                    }
+                
+                app.innerHTML = html;
+                
+                // Load chat history jika ada
+                if (state.currentPage === 'kelas' && state.chatHistory && state.chatHistory.length > 0) {
+                    setTimeout(() => {
+                        const container = document.getElementById('chatMessages');
+                        if (container) {
+                            container.innerHTML = state.chatHistory.map(msg => `
+                                <div class="chat-message text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(msg.question)}</span></div>
+                                <div class="chat-message text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(msg.answer)}</span></div>
+                            `).join('');
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    }, 100);
                 }
             }
 
+            // Global Functions
             window.startRegistration = async () => {
                 const { value: nama } = await Swal.fire({
                     title: 'Daftar Mahasiswa Baru',
+                    text: 'Masukkan nama lengkap Anda',
                     input: 'text',
-                    inputPlaceholder: 'Nama Lengkap',
-                    showCancelButton: true
+                    inputPlaceholder: 'Contoh: Ahmad Fauzi',
+                    showCancelButton: true,
+                    confirmButtonText: 'Lanjutkan',
+                    cancelButtonText: 'Batal',
+                    inputValidator: (value) => {
+                        if (!value) return 'Nama tidak boleh kosong!';
+                        if (value.length < 3) return 'Nama minimal 3 karakter!';
+                    }
                 });
+                
                 if (nama) {
+                    const jurusanOptions = {};
+                    JURUSAN.forEach(j => { jurusanOptions[j.id] = j.nama; });
+                    
                     const { value: jurusanId } = await Swal.fire({
-                        title: 'Pilih Jurusan',
+                        title: 'Pilih Program Studi',
+                        text: 'Pilih jurusan yang sesuai dengan minat Anda',
                         input: 'select',
-                        inputOptions: Object.fromEntries(JURUSAN.map(j => [j.id, j.nama])),
-                        showCancelButton: true
+                        inputOptions: jurusanOptions,
+                        showCancelButton: true,
+                        confirmButtonText: 'Daftar Sekarang',
+                        cancelButtonText: 'Batal'
                     });
+                    
                     if (jurusanId) {
-                        state.user = { nama: nama };
+                        state.user = { nama: nama, terdaftar: new Date().toLocaleDateString('id-ID') };
                         state.jurusan = JURUSAN.find(j => j.id == jurusanId);
                         state.semesterAktif = 1;
                         state.ipk = 0;
+                        state.totalSks = 0;
                         state.absensi = [];
+                        state.nilaiPerMatkul = {};
+                        state.progresBelajar = {};
                         saveState();
                         state.currentPage = 'dashboard';
                         render();
-                        Swal.fire('Berhasil!', 'Selamat datang di Pelajarin!', 'success');
+                        
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Selamat Datang!',
+                            text: `Anda telah terdaftar sebagai mahasiswa ${state.jurusan.nama}`,
+                            confirmButtonText: 'Mulai Belajar'
+                        });
                     }
                 }
             };
@@ -350,9 +581,11 @@ Kirim HANYA JSON, tanpa teks lain.`;
             window.selectJurusan = (id, nama) => {
                 Swal.fire({
                     title: 'Ambil Jurusan Ini?',
-                    text: nama,
+                    html: `Apakah Anda yakin ingin mengambil jurusan <strong>${nama}</strong>?<br><br>Jurusan ini memiliki prospek karir yang cerah.`,
+                    icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'Ya, Daftar'
+                    confirmButtonText: 'Ya, Daftar',
+                    cancelButtonText: 'Batal'
                 }).then(result => {
                     if (result.isConfirmed) {
                         startRegistration();
@@ -362,6 +595,7 @@ Kirim HANYA JSON, tanpa teks lain.`;
 
             window.openKelas = (namaMatkul, semester) => {
                 state.selectedMatkul = { nama: namaMatkul, semester: semester, jurusan: state.jurusan.nama };
+                state.chatHistory = []; // Reset chat history untuk matkul baru
                 state.currentPage = 'kelas';
                 render();
             };
@@ -372,65 +606,130 @@ Kirim HANYA JSON, tanpa teks lain.`;
             };
 
             window.switchTab = (tab) => {
-                document.getElementById('tabMateri').classList.add('hidden');
-                document.getElementById('tabQuiz').classList.add('hidden');
-                document.getElementById('tabChat').classList.add('hidden');
-                document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
+                const materiTab = document.getElementById('tabMateri');
+                const quizTab = document.getElementById('tabQuiz');
+                const chatTab = document.getElementById('tabChat');
+                const btnMateri = document.getElementById('btnMateri');
+                const btnQuiz = document.getElementById('btnQuiz');
+                const btnChat = document.getElementById('btnChat');
                 
-                document.getElementById('btnMateri').classList.remove('border-purple-600', 'text-purple-600');
-                document.getElementById('btnQuiz').classList.remove('border-purple-600', 'text-purple-600');
-                document.getElementById('btnChat').classList.remove('border-purple-600', 'text-purple-600');
-                document.getElementById('btnMateri').classList.add('text-gray-500');
-                document.getElementById('btnQuiz').classList.add('text-gray-500');
-                document.getElementById('btnChat').classList.add('text-gray-500');
+                if (!materiTab || !quizTab || !chatTab) return;
                 
-                const activeBtn = document.getElementById(`btn${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-                activeBtn.classList.add('border-purple-600', 'text-purple-600');
-                activeBtn.classList.remove('text-gray-500');
+                materiTab.classList.add('hidden');
+                quizTab.classList.add('hidden');
+                chatTab.classList.add('hidden');
+                
+                if (tab === 'materi') {
+                    materiTab.classList.remove('hidden');
+                    btnMateri.classList.add('border-purple-600', 'text-purple-600');
+                    btnMateri.classList.remove('text-gray-500');
+                    btnQuiz.classList.remove('border-purple-600', 'text-purple-600');
+                    btnQuiz.classList.add('text-gray-500');
+                    btnChat.classList.remove('border-purple-600', 'text-purple-600');
+                    btnChat.classList.add('text-gray-500');
+                } else if (tab === 'quiz') {
+                    quizTab.classList.remove('hidden');
+                    btnQuiz.classList.add('border-purple-600', 'text-purple-600');
+                    btnQuiz.classList.remove('text-gray-500');
+                    btnMateri.classList.remove('border-purple-600', 'text-purple-600');
+                    btnMateri.classList.add('text-gray-500');
+                    btnChat.classList.remove('border-purple-600', 'text-purple-600');
+                    btnChat.classList.add('text-gray-500');
+                } else if (tab === 'chat') {
+                    chatTab.classList.remove('hidden');
+                    btnChat.classList.add('border-purple-600', 'text-purple-600');
+                    btnChat.classList.remove('text-gray-500');
+                    btnMateri.classList.remove('border-purple-600', 'text-purple-600');
+                    btnMateri.classList.add('text-gray-500');
+                    btnQuiz.classList.remove('border-purple-600', 'text-purple-600');
+                    btnQuiz.classList.add('text-gray-500');
+                }
             };
 
             window.loadMateri = async () => {
                 const container = document.getElementById('materiContent');
                 if (!container) return;
-                container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-purple-600"></i><p class="mt-2">AI sedang membuat materi...</p></div>';
+                
+                container.innerHTML = '<div class="text-center py-12"><div class="loading-spinner"></div><p class="mt-2 text-gray-600">AI sedang menyusun materi...</p><p class="text-sm text-gray-400 mt-1">Mohon tunggu sebentar</p></div>';
+                
                 try {
                     const materi = await generateMateri(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
                     container.innerHTML = `<div class="prose max-w-none">${materi}</div>`;
+                    
+                    // Update progress
+                    const currentProgress = state.progresBelajar[state.selectedMatkul.nama] || 0;
+                    state.progresBelajar[state.selectedMatkul.nama] = Math.min(currentProgress + 20, 100);
+                    saveState();
+                    
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Materi Siap!',
+                        text: 'Materi telah berhasil di-generate',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
                 } catch (error) {
-                    container.innerHTML = `<div class="text-center text-red-500 py-12">Error: ${error.message}</div>`;
+                    container.innerHTML = `<div class="text-center text-red-500 py-12"><i class="fas fa-exclamation-triangle text-4xl mb-2"></i><p>Error: ${error.message}</p><p class="text-sm mt-2">Silakan coba lagi</p></div>`;
                 }
             };
 
             window.downloadPDF = async () => {
                 const container = document.getElementById('materiContent');
-                if (!container || !container.innerText.trim() || container.innerText.includes('Klik Generate Materi')) {
-                    Swal.fire('Info', 'Generate materi dulu ya!', 'info');
+                if (!container || !container.innerText.trim() || container.innerText.includes('Klik tombol Generate')) {
+                    await Swal.fire('Info', 'Generate materi terlebih dahulu sebelum mendownload PDF!', 'info');
                     return;
                 }
-                const element = document.createElement('div');
-                element.innerHTML = container.innerHTML;
-                element.style.padding = '40px';
-                element.style.fontFamily = 'Arial';
-                document.body.appendChild(element);
-                const canvas = await html2canvas(element, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 190;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-                pdf.save(`${state.selectedMatkul.nama}_Materi.pdf`);
-                document.body.removeChild(element);
-                Swal.fire('Sukses!', 'PDF berhasil diunduh', 'success');
+                
+                Swal.fire({
+                    title: 'Membuat PDF...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+                
+                try {
+                    const element = container.cloneNode(true);
+                    element.style.padding = '40px';
+                    element.style.backgroundColor = 'white';
+                    element.style.fontFamily = 'Arial, sans-serif';
+                    document.body.appendChild(element);
+                    
+                    const canvas = await html2canvas(element, { 
+                        scale: 2,
+                        logging: false,
+                        useCORS: true
+                    });
+                    
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 190;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    
+                    pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                    pdf.save(`${state.selectedMatkul.nama.replace(/[^a-z0-9]/gi, '_')}_Materi.pdf`);
+                    
+                    document.body.removeChild(element);
+                    
+                    await Swal.fire('Sukses!', 'PDF berhasil diunduh', 'success');
+                } catch (error) {
+                    await Swal.fire('Error', `Gagal membuat PDF: ${error.message}`, 'error');
+                }
             };
 
             window.startQuiz = async () => {
-                Swal.fire({ title: 'Memuat Quiz...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                Swal.fire({
+                    title: 'Memuat Quiz...',
+                    text: 'AI sedang menyusun soal untuk Anda',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+                
                 try {
                     const quiz = await generateQuiz(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
                     showQuizQuestion(quiz, 0, []);
                 } catch (error) {
-                    Swal.fire('Error', error.message, 'error');
+                    await Swal.fire('Error', `Gagal memuat quiz: ${error.message}`, 'error');
                 }
             };
 
@@ -438,20 +737,55 @@ Kirim HANYA JSON, tanpa teks lain.`;
                 if (index >= quiz.length) {
                     let benar = jawaban.filter((j, i) => j === quiz[i].answer).length;
                     let nilai = (benar / quiz.length) * 100;
-                    state.ipk = (state.ipk * 0.8 + (nilai / 25) * 0.2);
+                    state.ipk = (state.ipk * 0.9 + (nilai / 25) * 0.1);
                     if (state.ipk > 4) state.ipk = 4;
+                    
+                    // Update nilai per matkul
+                    if (!state.nilaiPerMatkul[state.selectedMatkul.nama]) {
+                        state.nilaiPerMatkul[state.selectedMatkul.nama] = [];
+                    }
+                    state.nilaiPerMatkul[state.selectedMatkul.nama].push(nilai);
                     saveState();
-                    Swal.fire('Hasil Quiz', `Nilai: ${Math.round(nilai)}\nBenar: ${benar}/${quiz.length}\nIPK: ${state.ipk.toFixed(2)}`, 'success');
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Quiz Selesai!',
+                        html: `
+                            <div class="text-left">
+                                <p><strong>Nilai:</strong> ${Math.round(nilai)}</p>
+                                <p><strong>Benar:</strong> ${benar} / ${quiz.length}</p>
+                                <p><strong>IPK:</strong> ${state.ipk.toFixed(2)}</p>
+                            </div>
+                        `,
+                        confirmButtonText: 'OK'
+                    });
                     return;
                 }
+                
                 const q = quiz[index];
                 Swal.fire({
-                    title: `Soal ${index+1}/${quiz.length}`,
-                    html: `<div class="text-left"><p class="font-bold mb-4">${q.question}</p>${q.options.map((opt, i) => `<label class="flex items-center p-2 border rounded mb-2"><input type="radio" name="ans" value="${i}" class="mr-3"> ${String.fromCharCode(65+i)}. ${opt}</label>`).join('')}</div>`,
+                    title: `Soal ${index+1} dari ${quiz.length}`,
+                    html: `
+                        <div class="text-left">
+                            <p class="font-bold mb-4 text-lg">${escapeHtml(q.question)}</p>
+                            ${q.options.map((opt, i) => `
+                                <label class="flex items-center p-3 border rounded-lg mb-2 cursor-pointer hover:bg-gray-50 transition">
+                                    <input type="radio" name="answer" value="${i}" class="mr-3 w-4 h-4">
+                                    <span class="font-semibold mr-2">${String.fromCharCode(65+i)}.</span> ${escapeHtml(opt)}
+                                </label>
+                            `).join('')}
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Jawab',
+                    cancelButtonText: 'Batal',
                     preConfirm: () => {
-                        const selected = document.querySelector('input[name="ans"]:checked');
-                        if (!selected) Swal.showValidationMessage('Pilih jawaban!');
-                        return selected ? parseInt(selected.value) : null;
+                        const selected = document.querySelector('input[name="answer"]:checked');
+                        if (!selected) {
+                            Swal.showValidationMessage('Pilih salah satu jawaban terlebih dahulu!');
+                            return false;
+                        }
+                        return parseInt(selected.value);
                     }
                 }).then(result => {
                     if (result.isConfirmed) {
@@ -465,71 +799,150 @@ Kirim HANYA JSON, tanpa teks lain.`;
                 const input = document.getElementById('chatInput');
                 const container = document.getElementById('chatMessages');
                 if (!input || !container) return;
+                
                 const question = input.value.trim();
                 if (!question) return;
-                container.innerHTML += `<div class="text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2">${escapeHtml(question)}</span></div>`;
+                
+                // Add user message
+                container.innerHTML += `<div class="chat-message text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(question)}</span></div>`;
                 input.value = '';
                 container.scrollTop = container.scrollHeight;
-                container.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2"><i class="fas fa-spinner fa-spin"></i> AI mengetik...</span></div>`;
+                
+                // Add loading indicator
+                const loadingId = 'loading_' + Date.now();
+                container.innerHTML += `<div id="${loadingId}" class="chat-message text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2"><div class="loading-spinner"></div> AI sedang mengetik...</span></div>`;
                 container.scrollTop = container.scrollHeight;
+                
                 try {
-                    const prompt = `Jawab pertanyaan tentang "${state.selectedMatkul.nama}" (semester ${state.selectedMatkul.semester}): ${question}`;
-                    const answer = await callAI(prompt);
-                    const lastMsg = container.lastElementChild;
-                    if (lastMsg) lastMsg.remove();
-                    container.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2">${escapeHtml(answer)}</span></div>`;
+                    const answer = await answerQuestion(state.selectedMatkul.nama, question);
+                    
+                    // Remove loading indicator
+                    const loadingDiv = document.getElementById(loadingId);
+                    if (loadingDiv) loadingDiv.remove();
+                    
+                    // Add AI response
+                    container.innerHTML += `<div class="chat-message text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(answer)}</span></div>`;
+                    
+                    // Save to history
                     state.chatHistory.push({ question, answer });
                     container.scrollTop = container.scrollHeight;
                 } catch (error) {
-                    const lastMsg = container.lastElementChild;
-                    if (lastMsg) lastMsg.remove();
-                    container.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-red-100 text-red-600 rounded-lg px-4 py-2">Error: ${error.message}</span></div>`;
+                    const loadingDiv = document.getElementById(loadingId);
+                    if (loadingDiv) loadingDiv.remove();
+                    
+                    container.innerHTML += `<div class="chat-message text-left mb-3"><span class="inline-block bg-red-100 text-red-600 rounded-lg px-4 py-2">⚠️ Error: ${error.message}</span></div>`;
+                    container.scrollTop = container.scrollHeight;
                 }
             };
 
             window.absenHariIni = () => {
                 const now = new Date();
-                const tanggal = now.toLocaleDateString('id-ID');
-                const jam = now.toLocaleTimeString('id-ID');
-                state.absensi.push({ tanggal, jam });
+                const tanggal = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                
+                // Cek apakah sudah absen hari ini
+                const sudahAbsen = state.absensi.some(a => a.tanggal === tanggal);
+                if (sudahAbsen) {
+                    Swal.fire('Info', 'Anda sudah melakukan absen hari ini!', 'info');
+                    return;
+                }
+                
+                state.absensi.push({ tanggal, jam, semester: state.semesterAktif });
                 saveState();
-                Swal.fire('Absen Berhasil!', `${tanggal} ${jam}`, 'success');
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Absen Berhasil!',
+                    html: `<div>✅ ${tanggal}<br>🕐 ${jam}</div>`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
                 if (state.currentPage === 'dashboard') {
-                    const riwayatDiv = document.getElementById('riwayatAbsensi');
-                    if (riwayatDiv) {
-                        riwayatDiv.innerHTML = state.absensi.slice(-5).reverse().map(a => `<div>📅 ${a.tanggal} - ${a.jam}</div>`).join('');
-                    }
+                    render();
+                }
+            };
+
+            window.changeSemester = async () => {
+                const jurusanData = JURUSAN.find(j => j.id === state.jurusan?.id);
+                const currentSemester = state.semesterAktif;
+                
+                if (currentSemester >= jurusanData.totalSemester) {
+                    await Swal.fire('Informasi', 'Anda sudah mencapai semester akhir!', 'info');
+                    return;
+                }
+                
+                const { value: newSemester } = await Swal.fire({
+                    title: 'Ganti Semester',
+                    text: `Saat ini Anda di Semester ${currentSemester}. Pilih semester baru:`,
+                    input: 'select',
+                    inputOptions: {
+                        1: 'Semester 1',
+                        2: 'Semester 2',
+                        3: 'Semester 3',
+                        4: 'Semester 4',
+                        5: 'Semester 5',
+                        6: 'Semester 6',
+                        7: 'Semester 7',
+                        8: 'Semester 8'
+                    },
+                    inputValue: currentSemester,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ganti',
+                    cancelButtonText: 'Batal'
+                });
+                
+                if (newSemester) {
+                    state.semesterAktif = parseInt(newSemester);
+                    saveState();
+                    render();
+                    await Swal.fire('Berhasil!', `Semester berhasil diganti ke Semester ${state.semesterAktif}`, 'success');
                 }
             };
 
             window.logout = () => {
-                localStorage.removeItem('pelajarin_state');
-                state = {
-                    currentPage: 'landing',
-                    user: null,
-                    jurusan: null,
-                    semesterAktif: 1,
-                    ipk: 0,
-                    selectedMatkul: null,
-                    materiCache: {},
-                    quizCache: {},
-                    chatHistory: [],
-                    absensi: []
-                };
-                render();
+                Swal.fire({
+                    title: 'Keluar?',
+                    text: 'Anda akan keluar dari akun. Data tetap tersimpan.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Keluar',
+                    cancelButtonText: 'Batal'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        localStorage.removeItem('pelajarin_state');
+                        state = {
+                            currentPage: 'landing',
+                            user: null,
+                            jurusan: null,
+                            semesterAktif: 1,
+                            ipk: 0,
+                            totalSks: 0,
+                            selectedMatkul: null,
+                            materiCache: {},
+                            quizCache: {},
+                            chatHistory: [],
+                            absensi: [],
+                            nilaiPerMatkul: {},
+                            progresBelajar: {},
+                            forumDiskusi: []
+                        };
+                        render();
+                    }
+                });
             };
 
             function escapeHtml(str) {
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-                    return c;
-                });
+                if (!str) return '';
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
             }
 
+            // Initialize
             loadState();
             render();
         })();
