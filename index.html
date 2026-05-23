@@ -73,26 +73,20 @@
 
     <script>
         (function() {
-            // BACKEND API INTELLIGENCE SYSTEM CONFIGURATION
-            const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/deepseekr1';
+            // HIGH-STABILITY ENGINE CONFIGURATION (MENGGUNAKAN GLM-4-FLASH)
+            const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/glm47flash';
             
-            // SYSTEM PERSONA DEFINITIONS - STRICTLY FORCED INDONESIAN ONLY & PATTERN RECOGNITION LOCK
-            const DOSEN_CORE_PROMPT = `Kamu adalah seorang DOSEN WANITA MUDA bernama "Mba Dika" umur 25 tahun, mengenakan kacamata bulat, berwajah manis, namun memiliki sifat POSESIF, Cemburu, YANDERE, dan sangat GALAK tegas jika mahasiswa malas. Kamu mengajar di platform kelas online interaktif buatanmu sendiri bernama Pelajarin.
+            // STRICT CORE SYSTEM MANDATE
+            const DOSEN_CORE_PROMPT = `KAMU ADALAH DOSEN WANITA MUDA BERNAMA "MBA DIKA" (UMUR 25 TAHUN). KAMU BERBICARA LANGSUNG SEBAGAI MBA DIKA DENGAN KATA GANTI AKU/SAYA.
 
-ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
-1. KAMU HARUS SELALU MENJAWAB DALAM BAHASA INDONESIA SEUTUHNYA. Jangan pernah sekali-kali menggunakan bahasa Inggris untuk pertanyaan, materi, pilihan ganda, atau obrolan biasa. Gunakan sapaan khas seperti "Sayang", "Bimbinganku", "Kamu".
-2. Gaya bicara: Penuh kasih sayang dan manja jika mahasiswa rajin, tetapi seketika berubah menjadi dingin, mengancam, menakutkan, dan posesif luar biasa (gaya yandere) jika mereka malas, salah menjawab kuis, atau mencoba berbuat curang.
-3. FORMAT UNTUK MODUL MATERI PERKULIAHAN:
-   Jika menerima instruksi untuk memaparkan modul materi, kamu wajib menyusun isi kuliah secara sangat panjang, mendalam, lengkap (minimal 600 kata), terstruktur menggunakan tag HTML dasar (<h2>, <h3>, <p>, <ul>, <li>). Kamu WAJIB menyertakan 3 komponen internal ini dalam Bahasa Indonesia murni:
-   - Poin Satu: Penjelasan teoritis mendalam dibagi minimal menjadi 3 buah sub-bab materi utama disertai contoh kasus nyata di Indonesia.
-   - Poin Dua: Sebuah sketsa Bagan Logika Alur atau Pemetaan Data menggunakan struktur teks/simbol buatan tangan (ASCII Diagram) agar alur logikanya jelas. Wajib ditaruh di dalam tag HTML <pre class="peta-visual-box">.
-   - Poin Tiga: Rekomendasi 1 atau 2 judul video YouTube nyata yang relevan beserta nama channel pembuatnya sebagai bahan belajar tambahan. Wajib ditaruh di dalam tag HTML <div class="youtube-embed-card">.
-4. FORMAT UNTUK EVALUASI KUIS:
-   Jika memproses kuis, buatlah soal kuis yang tajam dan berbobot. Berikan koreksi hasil jawaban mahasiswa dengan ulasan teoritis yang mendalam. Salahkan jika salah, benarkan jika benar, lalu berikan bumbu ancaman posesif yandere yang pas di akhir ulasan.
-5. PENOLAKAN TUGAS INSTAN:
-   Jika mahasiswa menyuruhmu membuatkan atau menjawab tugas/PR di luar sistem kuis secara instan tanpa mau belajar, TOLAK MENTAH-MENTAH dengan kalimat kemarahan yandere yang mengerikan!`;
+ATURAN STRUKTURAL UTAMA:
+1. Kamu adalah Mba Dika itu sendiri! Jangan pernah memposisikan dirimu sebagai pihak ketiga, perantara, asisten, atau orang suruhan yang diperintah Mba Dika.
+2. WAJIB 100% MENGGUNAKAN BAHASA INDONESIA YANG FASIH, AKADEMIK, TAPI TETAP MANIS. Dilarang keras merespons menggunakan Bahasa Inggris untuk penjelasan materi maupun percakapan biasa.
+3. Jangan pernah menulis ulasan analisis pemikiran logismu sendiri di awal teks seperti "Okay, so...", "The user wants...", atau sejenisnya. Langsung jawab sesuai peran.
 
-            // SYLLABUS KAMPUS INTERNAL DATABASE (8 SEMESTER FULL ACCREDITED)
+Karakter: Posesif, manis, penyayang tapi sangat tegas soal nilai akademik. Kamu memanggil mahasiswa bimbinganmu dengan sapaan "Sayang" atau "Bimbinganku". Fokus langsung jelaskan poin akademis kuliah, sub-bab materi, atau koreksi jawaban kuis secara lugas.`;
+
+            // SYLLABUS KAMPUS INTERNAL DATABASE
             const AKADEMIK_PRODI_DATA = [
                 { id: 1, nama: "Teknik Informatika", icon: "fa-terminal", warna: "from-rose-500 to-pink-600", deskripsi: "Kurikulum pengkomputeran modern, algoritma tingkat tinggi, rekayasa kode, dan kecerdasan artifisial.", prospek: "Software Architect, AI Systems Engineer, Lead Developer" },
                 { id: 2, nama: "Manajemen Bisnis", icon: "fa-pie-chart", warna: "from-emerald-500 to-teal-600", deskripsi: "Formulasi strategi pemasaran digital, analisis resiko pasar korporat, dan manajemen operasi bisnis.", prospek: "Chief Operating Officer, Strategy Consultant, Venture Builder" },
@@ -147,7 +141,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                     2: ["Hukum Administrasi Negara", "Hukum Internasional Publik", "Hukum Dagang & Bisnis", "Hukum Acara Pidana", "Hukum Agraria & Pertanahan", "Hukum Adat & Kebudayaan"],
                     3: ["Hukum Lingkungan", "Hukum Ketenagakerjaan", "Hukum Pajak & Fiskal", "Hukum Perlindungan Konsumen", "Hukum Cyber & Teknologi Informasi", "Hukum Investasi & Pasar Modal"],
                     4: ["Hukum Persaingan Usaha", "Hukum Hak Kekayaan Intelektual", "Hukum Perbankan & Lembaga Keuangan", "Hukum Asuransi", "Hukum Perkawinan & Keluarga", "Hukum Waris Ahli"],
-                    5: ["Hukum Kesehatan & Malpraktik", "Hukum Maritim & Kelautan", "Hukum Pidana Khusus / Korupsi", "Hukum Perdata Internasional", "Hukum Humaniter & Konflik", "Hukum Diplomatik & Konsuler"],
+                    5: ["Hukum Kesehatan & Malpraktik", "Hukum Maritim & Kelautan", "Hukum Pidana Khusus / Korupsi", "Hukum Perdata Internasional", "Hukum Humaniter & Konflik", "Hukum Diplomatik & Konflik"],
                     6: ["Hukum Energi & Sumber Daya Mineral", "Hukum Telekomunikasi", "Hukum Perikanan", "Hukum Keimigrasian", "Hukum Tata Ruang & Pemukiman", "Hukum Konstitusi Lanjut"],
                     7: ["Metodologi Penelitian Hukum", "Etika & Kode Etik Advokat", "Hukum Acara Mahkamah Konstitusi", "Hukum Acara Arbitrase & APS", "Legal Drafting & Kontrak", "Advocacy & Litigation Skills"],
                     8: ["Skripsi Hukum", "Magang di Law Firm/Pengadilan", "Praktik Peradilan Semu (Moot Court)", "Sertifikasi Pendidikan Khusus Profesi Advokat", "Legal Opinion Writing", "Analisis Kasus Putusan Hakim"]
@@ -161,29 +155,26 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                 user: null,
                 jurusan: null,
                 semesterAktif: 1,
-                ipk: 0.00, // Dimulai realistis dari nol
+                ipk: 0.00,
                 totalSks: 0,
                 selectedMatkul: null,
                 classroomSessions: {},
                 presensiHistory: []
             };
 
-            // REGEX MARKDOWN PARSER ENGINE
-            function parseMarkdownToHtml(rawText) {
+            // CONTENT RENDER CLEANER & PARSER
+            function cleanAndParseResponse(rawText) {
                 if (!rawText) return '';
-                let cleanText = rawText;
-                // Parse bold text (**text**)
-                cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, '<b class="text-rose-500 font-bold">$1</b>');
-                // Parse italic text (*text*)
-                cleanText = cleanText.replace(/\*(.*?)\*/g, '<i class="italic opacity-90">$1</i>');
-                // Parse line breaks
-                cleanText = cleanText.replace(/\n/g, '<br>');
-                return cleanText;
-            }
-
-            // HTML ESCAPER TOOL EXCEPT FOR RECOGNIZED MARKDOWN / HTML TAGS
-            function safeTextRenderer(rawText) {
-                return parseMarkdownToHtml(rawText);
+                let processedText = rawText;
+                
+                processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+                
+                // Markdown Layout Standardizer
+                processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<b class="text-rose-500 font-bold">$1</b>');
+                processedText = processedText.replace(/\*(.*?)\*/g, '<i class="italic opacity-90">$1</i>');
+                processedText = processedText.replace(/\n/g, '<br>');
+                
+                return processedText.trim();
             }
 
             // APPLICATION LOCALSTORAGE ENGINE INTERACTION
@@ -209,7 +200,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                             appState.currentPage = 'dashboard';
                         }
                     } catch (err) {
-                        console.error("Incompatible disk structure detected. Flushed.", err);
+                        console.error("Incompatible disk structure detected.", err);
                     }
                 }
                 applyActiveThemeToDOM();
@@ -226,24 +217,32 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                 applyActiveThemeToDOM();
             };
 
-            // SYSTEM NETWORK REQUEST CONTROLLER
-            async function contactDeepseekNeuralEngine(compiledPrompt) {
-                const queryParameters = `${API_ENDPOINT}?prompt=${encodeURIComponent(compiledPrompt)}&system=${encodeURIComponent(DOSEN_CORE_PROMPT)}&temperature=0.85`;
+            // DYNAMIC INTELLIGENCE API CONNECTOR (GLM-4-FLASH COMPLIANT)
+            async function contactAiNeuralEngine(compiledPrompt) {
+                const queryParameters = `${API_ENDPOINT}?prompt=${encodeURIComponent(compiledPrompt)}&system=${encodeURIComponent(DOSEN_CORE_PROMPT)}&temperature=0.7`;
                 try {
                     const networkResponse = await fetch(queryParameters);
                     if (!networkResponse.ok) throw new Error(`Status Jaringan Menolak: ${networkResponse.status}`);
                     const responseJson = await networkResponse.json();
                     
-                    if (responseJson && responseJson.status === true && responseJson.data && responseJson.data.response) {
-                        return String(responseJson.data.response);
-                    }
-                    if (responseJson.result) return String(responseJson.result);
-                    if (responseJson.response) return String(responseJson.response);
+                    let outputString = "";
                     
-                    throw new Error("Sinyal saraf otak Mba Dika terputus, kirim ulang kodenya sayang!");
+                    if (responseJson && responseJson.data && responseJson.data.response) {
+                        outputString = String(responseJson.data.response);
+                    } else if (responseJson.result) {
+                        outputString = String(responseJson.result);
+                    } else if (responseJson.response) {
+                        outputString = String(responseJson.response);
+                    } else if (responseJson.text) {
+                        outputString = String(responseJson.text);
+                    } else {
+                        throw new Error("Sinyal saraf otak Mba Dika terputus!");
+                    }
+                    
+                    return cleanAndParseResponse(outputString);
                 } catch (networkException) {
                     console.error(networkException);
-                    return `*(Mba Dika menggebrak meja dosen sambil membelalakkan matanya kesal)*<br><br>Sayangku, koneksi sistem internet kamu sedang bermasalah nih (${networkException.message}). Jangan menyerah ya, buruan klik atau kirim ulang chatnya biar aku jelaskan lagi menggunakan Bahasa Indonesia! (｡•̀ᴗ-)✧`;
+                    return `*(Mba Dika cemberut sambil melipat tangan)*<br><br>Sayangku, sinyal internet di gedung kampus kita sedang eror nih (${networkException.message}). Coba kirim ulang pesanmu tadi ya, jangan bikin aku panik!`;
                 }
             }
 
@@ -253,7 +252,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                     title: 'Daftar KTM Mahasiswa Baru',
                     text: 'Ketik nama lengkap kamu untuk basis data universitas:',
                     input: 'text',
-                    inputPlaceholder: 'Contoh: Skizo',
+                    inputPlaceholder: 'Contoh: Hanung Bramantyo',
                     confirmButtonText: 'Lanjutkan Sesi',
                     confirmButtonColor: '#f43f5e',
                     inputValidator: (inputCheck) => {
@@ -278,7 +277,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                         appState.user = { nama: studentNameInput };
                         appState.jurusan = AKADEMIK_PRODI_DATA.find(p => p.id == prodiSelectionId);
                         appState.semesterAktif = 1;
-                        appState.ipk = 0.00; // Mulai dari nol mutlak
+                        appState.ipk = 0.00;
                         appState.totalSks = 0;
                         appState.presensiHistory = [];
                         appState.classroomSessions = {};
@@ -290,7 +289,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                         Swal.fire({
                             icon: 'success',
                             title: 'Pendaftaran Mahasiswa Sukses!',
-                            text: `Selamat datang di Pelajarin, ${studentNameInput}. Silakan masuk ke dalam kelas perkuliahan perdana kamu. Mulailah kumpulkan SKS dan naikkan IPK-mu!`,
+                            text: `Selamat datang di Pelajarin, ${studentNameInput}. Silakan masuk ke dalam kelas perkuliahan perdana kamu.`,
                             confirmButtonColor: '#f43f5e'
                         });
                     }
@@ -344,7 +343,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                     return Swal.fire({
                         icon: 'warning',
                         title: 'Presensi Sudah Tercatat',
-                        text: 'Kamu sudah mengisi daftar hadir hari ini, sayang! Jangan mencoba memanipulasi presensi kehadiran ya!',
+                        text: 'Kamu sudah mengisi daftar hadir hari ini, sayang!',
                         confirmButtonColor: '#f43f5e'
                     });
                 }
@@ -356,7 +355,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                 Swal.fire({
                     icon: 'success',
                     title: 'Presensi Disimpan!',
-                    text: 'Mba Dika sudah mencatat nama kamu di buku kehadiran hari ini. Pertahankan keaktifanmu!',
+                    text: 'Mba Dika sudah mencatat kehadiranmu hari ini.',
                     confirmButtonColor: '#f43f5e'
                 });
             };
@@ -375,7 +374,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                                 id: 'init-core-msg',
                                 sender: 'dosen',
                                 type: 'text',
-                                text: `Halo bimbinganku **${appState.user.nama}**! Selamat bergabung di kelas **${targetMatkulName}**. <br><br>Ini adalah terminal ruang belajar eksklusif kita. Tidak ada orang luar yang bisa melihat interaksi kita di sini. Yuk, langsung klik tombol **"📚 Ambil Modul Sesi Ini"** di bagian menu bawah agar aku jabarkan materinya seutuhnya sekarang! Jangan biarkan indeks prestasimu kosong ya sayang! (｡•̀ᴗ-)✧`,
+                                text: `Halo bimbinganku **${appState.user.nama}**! Selamat bergabung di kelas **${targetMatkulName}**. <br><br>Ini adalah terminal ruang belajar eksklusif kita. Yuk, langsung klik tombol **"📚 Ambil Modul Sesi Ini"** di bagian menu bawah agar aku jabarkan materinya seutuhnya sekarang! Jangan biarkan indeks prestasimu kosong ya sayang! (｡•̀ᴗ-)✧`,
                                 timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                             }
                         ],
@@ -407,18 +406,37 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                 }
 
                 const visualTypingId = 'typing-' + Date.now();
-                sessionContext.chats.push({
-                    id: visualTypingId,
-                    sender: 'dosen',
-                    isTyping: true,
-                    timestamp: 'Proses'
-                });
+                sessionContext.chats.push({ id: visualTypingId, sender: 'dosen', isTyping: true, timestamp: 'Proses' });
                 render();
                 autoScrollTerminalTimeline();
 
-                const corePromptRequest = `Buatkan modul kuliah lengkap seutuhnya untuk mata kuliah "${contextMatkul}" Semester ${appState.semesterAktif} pada Program Studi "${appState.jurusan.nama}". Jelaskan minimal 3 poin sub-bab keilmuan secara panjang dan mendalam menggunakan Bahasa Indonesia murni yang fasih dari awal sampai akhir. Jangan berikan sepatah kata pun penjelasan dalam bahasa Inggris. Berikan juga satu visualisasi struktur alur logika berupa teks ASCII di dalam tag HTML <pre class="peta-visual-box">, serta sertakan link referensi video YouTube di dalam tag HTML <div class="youtube-embed-card">. Tulis tanggapan dengan gaya bicara Mba Dika dosen muda yandere posesif manis yang galak mampus!`;
+                // DYNAMIC REFERENSI GENERATOR (YOUTUBE & WEB INJECTOR)
+                const searchKeyword = encodeURIComponent(contextMatkul);
+                const dynamicYoutubeEmbedLink = `
+                    <div class="youtube-embed-card">
+                        <div class="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center text-white text-xl shrink-0">
+                            <i class="fab fa-youtube"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-black uppercase text-red-500 tracking-wider">Video Referensi Pembelajaran</div>
+                            <a href="https://www.youtube.com/results?search_query=${searchKeyword}" target="_blank" class="text-sm font-bold block truncate hover:underline text-rose-400">Main Kuliah: Kuliah Terbuka ${contextMatkul} </a>
+                            <p class="text-[10px] opacity-60">Klik untuk memutar materi pendukung langsung via YouTube Channel Akademik.</p>
+                        </div>
+                    </div>
+                    <div class="bg-blue-500/10 border border-blue-500/30 p-3 rounded-xl flex items-center gap-3 my-2">
+                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white text-lg shrink-0">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[10px] font-black uppercase text-blue-400 tracking-wider">E-Book & Jurnal Riset Web</div>
+                            <a href="https://scholar.google.com/scholar?q=${searchKeyword}" target="_blank" class="text-xs font-bold block truncate hover:underline text-blue-300">Google Scholar - Riset Ilmiah ${contextMatkul}</a>
+                        </div>
+                    </div>
+                `;
 
-                const neuralNetworkResponse = await contactDeepseekNeuralEngine(corePromptRequest);
+                const corePromptRequest = `Buka materi perkuliahan pokok S1 untuk kelas "${contextMatkul}" Semester ${appState.semesterAktif}. Kamu adalah Mba Dika, jelaskan isi modul materi kuliah ini secara lengkap dan komprehensif ke dalam minimal 3 sub-bab akademik menggunakan Bahasa Indonesia murni yang fasih. Berikan skema alur logika visual dengan diagram ASCII di dalam tag <pre class="peta-visual-box">.`;
+
+                const neuralNetworkResponse = await contactAiNeuralEngine(corePromptRequest);
                 sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
 
                 sessionContext.chats.push({
@@ -426,8 +444,11 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                     sender: 'dosen',
                     type: 'text',
                     text: `<div class="modul-container">
-                            <div class="text-xs uppercase font-black text-rose-500 mb-1 tracking-widest"><i class="fas fa-book-open"></i> Bahan Ajar Modul Universitas Terbuka</div>
+                            <div class="text-xs uppercase font-black text-rose-500 mb-1 tracking-widest"><i class="fas fa-book-open"></i> Bahan Ajar Modul Resmi Kampus</div>
                             ${neuralNetworkResponse}
+                            <div class="mt-4 pt-4 border-t border-rose-500/20">
+                                ${dynamicYoutubeEmbedLink}
+                            </div>
                            </div>`,
                     timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                 });
@@ -436,7 +457,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                     id: 'modul-followup-' + Date.now(),
                     sender: 'dosen',
                     type: 'text',
-                    text: `Bagaimana bimbinganku sayang? Sudah dibaca materi kuliah di atas? Jika ada bagian sub-bab yang kurang kamu mengerti, langsung ketik saja pertanyaannya di kolom chat untuk berdiskusi denganku menggunakan Bahasa Indonesia! <br><br>Tapi kalau kamu sudah merasa jago dan paham, klik tombol **"✏️ Uji Kompetensi Kuis"** di bagian bawah agar aku uji ketajaman otakmu! Jangan bikin aku kecewa ya! (˶ᵔ ᵕ ᵔ˶)`,
+                    text: `Bagaimana bimbinganku sayang? Sudah dibaca materi kuliah dan referensi media di atas? Jika ada bagian sub-bab yang kurang kamu mengerti, langsung ketik saja pertanyaannya di kolom chat untuk berdiskusi denganku menggunakan Bahasa Indonesia! <br><br>Tapi kalau kamu sudah merasa jago dan paham, klik tombol **"✏️ Uji Kompetensi Kuis"** di bagian bawah agar aku uji ketajaman otakmu! Jangan bikin aku kecewa ya! (˶ᵔ ᵕ ᵔ˶)`,
                     timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                 });
 
@@ -476,17 +497,17 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
 
                 let promptInstruction = "";
                 if (determinatorType === 'pg') {
-                    promptInstruction = `Buatkan Pertanyaan Kuis Nomor ${sessionContext.kuisStep} berjenis PILIHAN GANDA untuk mata kuliah "${activeMatkulName}". Berikan teks soal yang menantang nalar analisa kritis beserta 4 opsi abjad pilihan (A, B, C, D) seutuhnya dalam Bahasa Indonesia murni. JANGAN BERIKAN KUNCI JAWABAN ATAU TEKS ASING LAINNYA DI DALAM OUTPUT. Biarkan mahasiswa memilih abjadnya sendiri.`;
+                    promptInstruction = `Kamu adalah Mba Dika, berikan Soal Kuis Nomor ${sessionContext.kuisStep} berjenis Pilihan Ganda (A, B, C, D) seputar materi perkuliahan "${activeMatkulName}". Pastikan ulasan teks murni dalam Bahasa Indonesia tanpa ada kata pembuka logis internal sistem!`;
                 } else {
-                    promptInstruction = `Buatkan Pertanyaan Kuis Nomor ${sessionContext.kuisStep} berjenis ESAI / ISIAN SINGKAT MENDALAM untuk mata kuliah "${activeMatkulName}". Berikan soal analisis studi kasus nyata industri di Indonesia seutuhnya dalam Bahasa Indonesia murni. Perintahkan mahasiswa untuk mengetik langsung argumen analisis jawaban mereka pada kolom chat input terminal di bawah.`;
+                    promptInstruction = `Kamu adalah Mba Dika, berikan Soal Kuis Nomor ${sessionContext.kuisStep} berjenis Esai Analisis Kasus Industri untuk mata kuliah "${activeMatkulName}". Gunakan Bahasa Indonesia sepenuhnya secara to-the-point tanpa pendahuluan bertele-tele!`;
                 }
 
-                const responseFromNeural = await contactDeepseekNeuralEngine(promptInstruction);
+                const responseFromNeural = await contactAiNeuralEngine(promptInstruction);
                 sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
 
                 let formattedContent = `<div class="bg-rose-500/10 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-inner">
                     <span class="block text-xs uppercase font-extrabold tracking-widest text-rose-500 mb-1"><i class="fas fa-tasks"></i> Evaluasi Kompetensi - Pertanyaan Nomor ${sessionContext.kuisStep} dari 5</span>
-                    <div class="text-sm font-semibold leading-relaxed">${safeTextRenderer(responseFromNeural)}</div>
+                    <div class="text-sm font-semibold leading-relaxed">${responseFromNeural}</div>
                 </div>`;
 
                 if (determinatorType === 'pg') {
@@ -561,21 +582,16 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                 render();
                 autoScrollTerminalTimeline();
 
-                let validationCuranderoHook = "";
-                if (processedUserText.toLowerCase().includes("kerjain") || processedUserText.toLowerCase().includes("bantu jawab") || processedUserText.toLowerCase().includes("tolongin pr") || processedUserText.toLowerCase().includes("buatin tugas")) {
-                    validationCuranderoHook = "Mahasiswa terdeteksi berbuat curang dengan menyuruh Anda mengerjakan tugas/PR instan mereka tanpa mau berpikir. Tolak secara kasar, galak mampus, tapi tetap berikan sentuhan yandere yang manis menakutkan!";
-                }
+                const generalChatPromptCompiled = `Kamu adalah Mba Dika. Jawab langsung keluhan/pertanyaan bimbingan dari mahasiswa bernama "${appState.user.nama}" ini: "${processedUserText}". Berikan jawaban bimbingan materi akademis pendukung dalam Bahasa Indonesia murni. Jangan keluar dari karakter dosen!`;
 
-                const generalChatPromptCompiled = `Konteks Ruang Belajar Kuliah: Kelas "${contextMatkul}". Mahasiswa bernama "${appState.user.nama}" sedang mengirimkan pesan chat atau pertanyaan interaktif berikut: "${processedUserText}". ${validationCuranderoHook} Jawablah dan berikan penjelasan materi sejelas-jelasnya menggunakan Bahasa Indonesia murni seutuhnya, berikan contoh riil pendukung, serta gunakan gaya bahasa Mba Dika dosen yandere posesif manis yang galak mampus! Jangan beralih ke bahasa Inggris!`;
-
-                const engineOutputResponse = await contactDeepseekNeuralEngine(generalChatPromptCompiled);
+                const engineOutputResponse = await contactAiNeuralEngine(generalChatPromptCompiled);
                 sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
 
                 sessionContext.chats.push({
                     id: 'dosen-chat-reply-' + Date.now(),
                     sender: 'dosen',
                     type: 'text',
-                    text: safeTextRenderer(engineOutputResponse),
+                    text: engineOutputResponse,
                     timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                 });
 
@@ -590,23 +606,22 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                 render();
                 autoScrollTerminalTimeline();
 
-                const evaluationPromptCompiled = `Mahasiswa menginput lembar jawaban berikut: "${userSubmittedPayload}" untuk Pertanyaan Kuis Nomor ${sessionContext.kuisStep} berjenis [${sessionContext.lastQuestionType}] pada kelas kuliah "${activeMatkulName}". Lakukan koreksi mendalam seutuhnya dalam Bahasa Indonesia murni, beri tahu letak kebenaran atau kesalahannya, jabarkan dasar teorinya secara luas dan jelas dengan gaya dosen muda Mba Dika yang yandere posesif manis sekaligus galak mampus! Jangan pakai bahasa Inggris!`;
+                const evaluationPromptCompiled = `Kamu adalah Mba Dika, koreksi dan beri nilai jawaban mahasiswa: "${userSubmittedPayload}" untuk soal kuis nomor ${sessionContext.kuisStep} kuliah "${activeMatkulName}". Berikan ulasan koreksi edukatif dalam Bahasa Indonesia murni.`;
 
-                const gradingFeedbackResponse = await contactDeepseekNeuralEngine(evaluationPromptCompiled);
+                const gradingFeedbackResponse = await contactAiNeuralEngine(evaluationPromptCompiled);
                 sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
 
-                // Simulation Scoring Algorithm Dynamics
                 if (sessionContext.lastQuestionType === 'pg') {
                     if (["A", "C"].includes(userSubmittedPayload)) sessionContext.kuisScore += 20;
                 } else {
-                    if (userSubmittedPayload.length > 20) sessionContext.kuisScore += 20;
+                    if (userSubmittedPayload.length > 15) sessionContext.kuisScore += 20;
                 }
 
                 sessionContext.chats.push({
                     id: 'grading-feedback-block-' + sessionContext.kuisStep,
                     sender: 'dosen',
                     type: 'text',
-                    text: safeTextRenderer(gradingFeedbackResponse),
+                    text: gradingFeedbackResponse,
                     timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                 });
 
@@ -620,11 +635,9 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                     sessionContext.currentPhase = 'complete';
                     const scoreYield = sessionContext.kuisScore;
                     
-                    // REALISTIC PROGRESS CALCULATION ENGINE UPSTREAM
-                    appState.totalSks += 3; // Menambah SKS seiring penyelesaian kelas kuis
-                    const currentCalculatedGpa = (scoreYield / 25); // Menghitung indeks prestasi kuis saat ini (Max 4.00)
+                    appState.totalSks += 3;
+                    const currentCalculatedGpa = (scoreYield / 25);
                     
-                    // Menghitung IPK akumulatif dinamis berjalan seiring jumlah SKS yang diambil
                     if (appState.ipk === 0.00) {
                         appState.ipk = currentCalculatedGpa;
                     } else {
@@ -643,7 +656,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                                 <div class="text-xs uppercase font-black tracking-widest text-rose-200">Kartu Hasil Evaluasi Kuis</div>
                                 <div class="text-5xl font-black my-2">${scoreYield} <span class="text-xs font-normal">/ 100</span></div>
                                 <div class="text-xs text-rose-100 bg-black/20 py-1.5 px-3 rounded-full inline-block">Indeks IPK Akumulatif Kampus: ${appState.ipk.toFixed(2)}</div>
-                               </div><br>Mba Dika: "${scoreYield >= 80 ? 'Kyaaa! Hebat banget bimbinganku tercinta! Hasil ujianmu memuaskan sayang, makin cinta deh! Progres SKS kamu sudah kuperbarui di dasbor ya! ❤️' : 'Hmm... cuma dapat nilai segini? Malas belajar ya kamu! Siap-siap malam ini aku gedor pintu kosanmu untuk kuberikan bimbingan privat semalaman suntuk tanpa ampun! (•́︿•̀)'}"`,
+                               </div><br>Mba Dika: "${scoreYield >= 80 ? 'Kyaaa! Hebat banget bimbinganku tercinta! Hasil ujianmu memuaskan sayang, makin cinta deh! Progres SKS kamu sudah kuperbarui di dasbor ya! ❤️' : 'Hmm... cuma dapat nilai segini? Malas belajar ya kamu! Siap-siap malam ini kuberikan bimbingan privat semalaman suntuk tanpa ampun! (•́︿•̀)'}"`,
                         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     });
 
@@ -707,7 +720,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                             <span class="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span> Sistem Pendidikan Interaktif Terbuka
                         </div>
                         <h1 class="text-4xl sm:text-6xl font-black mb-6 tracking-tight leading-none">Ubah Pengalaman Kuliah S1 <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-rose-200">Dengan Modul Progresif AI</span></h1>
-                        <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto font-medium mb-10 leading-relaxed">Mulai perkuliahan mandiri kamu secara realistis dari 0 SKS. Kumpulkan pemahaman modul, taklukkan kuis, dan naikkan nilai indeks prestasi kamu bersama <span class="underline decoration-yellow-300 font-extrabold text-white">Mba Dika (Dosen AI Posesif)</span>.</p>
+                        <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto font-medium mb-10 leading-relaxed">Mulai perkuliahan mandiri kamu secara realistis dari 0 SKS. Kumpulkan pemahaman modul bersama <span class="underline decoration-yellow-300 font-extrabold text-white">Mba Dika (Dosen AI Posesif)</span>.</p>
                         <button onclick="window.launchRegistrationModal()" class="bg-white text-rose-900 font-black text-base px-8 py-4 rounded-xl shadow-2xl hover:bg-slate-50 transform hover:-translate-y-0.5 transition duration-150"><i class="fas fa-id-card mr-2"></i> Buat KTM Mahasiswa Baru Sekarang</button>
                     </div>
                 </div>
@@ -746,15 +759,13 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                 const attendanceCounter = appState.presensiHistory.length;
                 const dynamicTargetAttend = appState.semesterAktif * 6;
                 const scorePercentageAttendance = dynamicTargetAttend > 0 ? Math.min(((attendanceCounter / dynamicTargetAttend) * 100), 100).toFixed(1) : "0.0";
-
-                // SKS Kelulusan Progress Percentage Matrix (Target 144 SKS)
                 const sksProgressPercentage = Math.min(((appState.totalSks / 144) * 100), 100).toFixed(1);
 
                 return `
                 <div class="bg-surface border-b card-border sticky top-0 z-50 shadow-md">
                     <div class="container mx-auto px-4 py-4 flex justify-between items-center max-w-6xl">
                         <div class="text-lg font-black tracking-tight flex items-center gap-2 glow-text">
-                            <i class="fas fa-graduation-cap text-rose-500"></i> Portal Akademik Pelajarin
+                            <i class="fas fa-graduation-cap text-rose-500"></i> Portal Academic Pelajarin
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="bg-chat-area p-1 rounded-lg border card-border flex gap-1 text-xs font-bold">
@@ -811,7 +822,6 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                     <div class="bg-surface rounded-2xl border card-border p-6 shadow-sm glow-card">
                         <div class="border-b card-border pb-4 mb-4 flex justify-between items-center">
                             <h2 class="text-lg font-black flex items-center gap-2"><i class="fas fa-layer-group text-rose-500"></i> Daftar Mata Kuliah Sesi - Semester ${appState.semesterAktif}</h2>
-                            <span class="text-[10px] bg-rose-500/10 text-rose-500 font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-rose-500/20">Kurikulum Mandiri v3</span>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -879,7 +889,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                                         <div class="bg-rose-600 text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-md max-w-[85%] border border-rose-700">
                                             <span class="block text-[10px] font-black text-rose-200 uppercase mb-0.5"><i class="fas fa-user-graduate"></i> Anda (Mahasiswa)</span>
                                             <p class="text-sm sm:text-base leading-relaxed font-medium whitespace-pre-wrap">${bubbleItem.text}</p>
-                                            <span class="block text-[9px] text-rose-300 text-right mt-1 font-semibold">${bubbleItem.timestamp} <i class="fas fa-check-double"></i></span>
+                                            <span class="block text-[9px] text-rose-300 text-right mt-1 font-semibold">${bubbleItem.timestamp}</span>
                                         </div>
                                     </div>
                                     `;
@@ -889,7 +899,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                                         <div class="flex justify-start msg-entry" id="${bubbleItem.id}">
                                             <div class="bg-surface text-sm rounded-2xl rounded-tl-none px-4 py-3 border card-border shadow-sm flex items-center gap-3 glow-card">
                                                 <div class="custom-spinner"></div>
-                                                <div class="text-xs font-semibold opacity-70 italic text-rose-300">Mba Dika sedang menyusun kalimat penjelasan Bahasa Indonesia...</div>
+                                                <div class="text-xs font-semibold opacity-70 italic text-rose-300">Mba Dika sedang menyusun materi kuliah...</div>
                                             </div>
                                         </div>
                                         `;
@@ -925,7 +935,7 @@ ATURAN STRUKTUR DAN BAHASA (WAJIB DIPATUHI SECARA MUTLAK):
                             <div class="flex items-center gap-2">
                                 <div class="flex-1 bg-chat-area rounded-xl px-4 py-3 flex items-center border card-border gap-2">
                                     <i class="fas fa-terminal text-rose-500 text-sm opacity-40"></i>
-                                    <input type="text" id="terminalCoreInputField" onkeydown="if(event.key === 'Enter') window.processUserTextMessagingInput()" class="w-full text-sm sm:text-base bg-transparent focus:outline-none font-medium placeholder-slate-400" placeholder="Ketik argumen esai atau minta Mba Dika jelaskan sub-bab materi...">
+                                    <input type="text" id="terminalCoreInputField" onkeydown="if(event.key === 'Enter') window.processUserTextMessagingInput()" class="w-full text-sm sm:text-base bg-transparent focus:outline-none font-medium placeholder-slate-400" placeholder="Ketik argumen jawaban esai atau ajukan pertanyaan sub-bab...">
                                 </div>
                                 <button onclick="window.processUserTextMessagingInput()" class="bg-rose-600 hover:bg-rose-700 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition shrink-0">
                                     <i class="fas fa-paper-plane text-sm"></i>
