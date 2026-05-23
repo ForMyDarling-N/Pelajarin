@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Pelajarin - Kampus Online Full AI | Platform Belajar Generasi Terbaru</title>
     
-    <!-- Tailwind CSS + Font Awesome + Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,793 +15,524 @@
     <style>
         * { font-family: 'Inter', sans-serif; }
         .gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .gradient-secondary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .gradient-success { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .glass-effect { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .card-hover:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
-        .animate-pulse-slow { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .modal-enter { animation: modalIn 0.3s ease-out; }
-        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .sidebar { transition: transform 0.3s ease; }
-        .sidebar-closed { transform: translateX(-100%); }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .tab-content { display: block; }
+        .tab-content.hidden { display: none; }
     </style>
 </head>
 <body class="bg-gray-50">
-    <div id="app" class="min-h-screen"></div>
+    <div id="app"></div>
 
     <script>
-        // ==================== KONFIGURASI ====================
-        const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/gptoss120b';
-        
-        // Data Jurusan Lengkap
-        const JURUSAN = [
-            { id: 1, nama: "Teknik Informatika", icon: "fa-laptop-code", warna: "from-blue-500 to-indigo-600", deskripsi: "Pelajari AI, Machine Learning, Cyber Security, dan Pengembangan Software", prospek: "Software Engineer, Data Scientist, Cyber Security Analyst", totalSemester: 8 },
-            { id: 2, nama: "Manajemen Bisnis", icon: "fa-chart-line", warna: "from-green-500 to-teal-600", deskripsi: "Kuasai Strategi Bisnis, Marketing Digital, dan Kewirausahaan", prospek: "Business Consultant, Marketing Manager, Entrepreneur", totalSemester: 8 },
-            { id: 3, nama: "Akuntansi", icon: "fa-calculator", warna: "from-yellow-500 to-orange-600", deskripsi: "Pahami Financial Accounting, Auditing, dan Perpajakan Modern", prospek: "Akuntan Publik, Auditor, Financial Analyst", totalSemester: 8 },
-            { id: 4, nama: "Psikologi", icon: "fa-brain", warna: "from-purple-500 to-pink-600", deskripsi: "Eksplorasi Perilaku Manusia, Konseling, dan Psikologi Industri", prospek: "Psikolog, HR Specialist, Konselor", totalSemester: 8 },
-            { id: 5, nama: "Hukum", icon: "fa-gavel", warna: "from-red-500 to-rose-600", deskripsi: "Pelajari Hukum Bisnis, Hukum Internasional, dan Advokasi", prospek: "Advokat, Legal Counsel, Jaksa/Hakim", totalSemester: 8 }
-        ];
-
-        // Database Mata Kuliah Lengkap (8 semester × 6 mata kuliah per semester)
-        const MATA_KULIAH = {
-            1: { // Teknik Informatika
-                1: ["Dasar Pemrograman", "Matematika Diskrit", "Sistem Digital", "Algoritma & Struktur Data", "Pengantar Teknologi Informasi", "Bahasa Inggris Teknis"],
-                2: ["Pemrograman Berorientasi Objek", "Basis Data", "Jaringan Komputer", "Arsitektur Komputer", "Statistika & Probabilitas", "Pemrograman Web Dasar"],
-                3: ["Struktur Data Lanjut", "Pemrograman Mobile", "Sistem Operasi", "Rekayasa Perangkat Lunak", "Kecerdasan Buatan", "Interaksi Manusia-Komputer"],
-                4: ["Pemrograman Web Lanjut", "Keamanan Komputer", "Data Mining", "Cloud Computing", "Pemrograman Fungsional", "Manajemen Proyek IT"],
-                5: ["Machine Learning", "DevOps", "Internet of Things", "Big Data Analytics", "Pemrograman Game", "UX/UI Design"],
-                6: ["Deep Learning", "Blockchain", "Computer Vision", "Natural Language Processing", "Ethical Hacking", "Digital Forensics"],
-                7: ["Metodologi Penelitian", "Etika Profesi IT", "Startup Digital", "Manajemen Inovasi", "Technopreneurship", "Sertifikasi Profesi"],
-                8: ["Skripsi/Tesis", "Magang Industri", "Kewirausahaan Digital", "Kapita Selekta", "Seminar Proposal", "Publikasi Ilmiah"]
-            },
-            2: { // Manajemen Bisnis
-                1: ["Pengantar Bisnis", "Ekonomi Mikro", "Manajemen Umum", "Akuntansi Dasar", "Matematika Bisnis", "Komunikasi Bisnis"],
-                2: ["Pemasaran", "Manajemen SDM", "Keuangan Bisnis", "Statistik Bisnis", "Perilaku Organisasi", "Bisnis Internasional"],
-                3: ["E-Bisnis", "Manajemen Operasi", "Kewirausahaan", "Studi Kelayakan", "Manajemen Risiko", "Bisnis Digital"],
-                4: ["Strategi Bisnis", "Manajemen Inovasi", "Supply Chain", "Negosiasi", "Corporate Governance", "CSR"],
-                5: ["Analisis Bisnis", "Leadership", "Manajemen Mutu", "Business Ethics", "Hukum Bisnis", "Business Intelligence"],
-                6: ["Digital Marketing", "Financial Technology", "Business Analytics", "Change Management", "Cross Cultural Management", "Family Business"],
-                7: ["Metodologi Riset", "Strategic Management", "Business Simulation", "Investment Analysis", "Portfolio Management", "Merger & Acquisition"],
-                8: ["Skripsi", "Magang", "Business Plan", "Business Incubation", "International Business", "Sertifikasi Profesi"]
-            },
-            3: { // Akuntansi
-                1: ["Pengantar Akuntansi", "Ekonomi Mikro", "Manajemen", "Matematika Ekonomi", "Pengantar Bisnis", "Bahasa Inggris"],
-                2: ["Akuntansi Keuangan", "Akuntansi Biaya", "Perpajakan", "Statistik", "Akuntansi Manajemen", "Sistem Informasi Akuntansi"],
-                3: ["Auditing", "Akuntansi Sektor Publik", "Analisis Laporan Keuangan", "Akuntansi Lanjutan", "Etika Profesi", "Akuntansi Syariah"],
-                4: ["Akuntansi Forensik", "Manajemen Keuangan", "Akuntansi Internasional", "Akuntansi Perbankan", "Akuntansi Pertanggungjawaban", "Konsolidasi"],
-                5: ["Akuntansi Sumber Daya", "Audit Internal", "Akuntansi Lingkungan", "Sistem Pengendalian", "Akuntansi Keperilakuan", "Perpajakan Lanjut"],
-                6: ["Audit Forensik", "Akuntansi Derivatif", "Akuntansi Rumah Sakit", "Akuntansi Pendidikan", "Akuntansi Pemerintahan", "Audit Sektor Publik"],
-                7: ["Metodologi Penelitian", "Akuntansi Digital", "Financial Modeling", "Risk Management", "Internal Control", "Corporate Reporting"],
-                8: ["Skripsi", "Magang", "Sertifikasi Profesi", "Praktik Audit", "Seminar Akuntansi", "Publikasi Jurnal"]
-            },
-            4: { // Psikologi
-                1: ["Psikologi Umum", "Biopsikologi", "Sejarah Psikologi", "Metode Penelitian", "Statistik Dasar", "Filsafat Ilmu"],
-                2: ["Psikologi Perkembangan", "Psikologi Sosial", "Psikologi Kepribadian", "Statistik Psikologi", "Psikologi Kognitif", "Psikologi Pendidikan"],
-                3: ["Psikologi Klinis", "Psikometri", "Psikologi Industri", "Psikologi Komunitas", "Psikologi Lintas Budaya", "Konseling Dasar"],
-                4: ["Psikologi Eksperimen", "Psikologi Kesehatan", "Psikologi Forensik", "Intervensi Krisis", "Psikologi Positif", "Neuropsikologi"],
-                5: ["Psikologi Olahraga", "Psikologi Konsumen", "Psikologi Keluarga", "Manajemen Stress", "Psikologi Pendidikan Lanjut", "Asesmen Psikologi"],
-                6: ["Terapi Kognitif", "Psikologi Perkembangan Lanjut", "Psikologi Sosial Lanjut", "Psikologi Organisasi", "Konseling Keluarga", "Psikologi Remaja"],
-                7: ["Etika Profesi", "Supervisi", "Psikologi Politik", "Psikologi Media", "Community Psychology", "Health Psychology"],
-                8: ["Skripsi", "Magang", "Praktikum Klinis", "Sertifikasi", "Intervensi Komunitas", "Publikasi Ilmiah"]
-            },
-            5: { // Hukum
-                1: ["Pengantar Ilmu Hukum", "Hukum Perdata", "Hukum Pidana", "Hukum Tata Negara", "Logika Hukum", "Sosiologi Hukum"],
-                2: ["Hukum Administrasi", "Hukum Internasional", "Hukum Dagang", "Hukum Acara", "Hukum Agraria", "Hukum Adat"],
-                3: ["Hukum Lingkungan", "Hukum Ketenagakerjaan", "Hukum Pajak", "Hukum Perlindungan Konsumen", "Hukum IT", "Hukum Investasi"],
-                4: ["Hukum Persaingan Usaha", "Hukum Hak Kekayaan", "Hukum Perbankan", "Hukum Asuransi", "Hukum Perkawinan", "Hukum Waris"],
-                5: ["Hukum Kesehatan", "Hukum Maritim", "Hukum Pidana Khusus", "Hukum Perdata Internasional", "Hukum Humaniter", "Hukum Diplomatik"],
-                6: ["Hukum Energi", "Hukum Telekomunikasi", "Hukum Perikanan", "Hukum Keimigrasian", "Hukum Pertanahan", "Hukum Tata Ruang"],
-                7: ["Metodologi Penelitian", "Etika Advokat", "Hukum Acara Mahkamah Konstitusi", "Hukum Acara Arbitrase", "Legal Drafting", "Advocacy Skills"],
-                8: ["Skripsi", "Magang", "Praktik Peradilan", "Sertifikasi Advokat", "Moot Court", "Legal Opinion Writing"]
-            ]
-        };
-
-        // State Management
-        let state = {
-            currentPage: 'landing',
-            user: null,
-            jurusan: null,
-            semesterAktif: 1,
-            ipk: 0,
-            selectedMatkul: null,
-            materiCache: {},
-            quizCache: {},
-            chatHistory: []
-        };
-
-        // Simpan ke localStorage
-        function saveState() {
-            localStorage.setItem('pelajarin_state', JSON.stringify({
-                user: state.user,
-                jurusan: state.jurusan,
-                semesterAktif: state.semesterAktif,
-                ipk: state.ipk
-            }));
-        }
-
-        // Load dari localStorage
-        function loadState() {
-            const saved = localStorage.getItem('pelajarin_state');
-            if (saved) {
-                const data = JSON.parse(saved);
-                state.user = data.user;
-                state.jurusan = data.jurusan;
-                state.semesterAktif = data.semesterAktif || 1;
-                state.ipk = data.ipk || 0;
-                if (state.user && state.jurusan) state.currentPage = 'dashboard';
-            }
-            render();
-        }
-
-        // API Call dengan loading & retry
-        async function callAI(prompt, system = "Kamu adalah asisten akademik yang sangat berpengetahuan. Berikan jawaban yang detail, akurat, dan berbasis referensi ilmiah.") {
-            const url = `${API_ENDPOINT}?prompt=${encodeURIComponent(prompt)}&system=${encodeURIComponent(system)}&temperature=0.7`;
+        (function() {
+            const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/gptoss120b';
             
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                return data.result || data.data || data.response || "Maaf, API tidak memberikan respons yang valid.";
-            } catch (error) {
-                console.error('API Error:', error);
-                throw new Error(`Gagal terhubung ke AI: ${error.message}`);
+            const JURUSAN = [
+                { id: 1, nama: "Teknik Informatika", icon: "fa-laptop-code", warna: "from-blue-500 to-indigo-600", deskripsi: "Pelajari pemrograman, AI, dan pengembangan software", prospek: "Software Engineer, Data Scientist, Cyber Security Analyst", totalSemester: 8 },
+                { id: 2, nama: "Manajemen Bisnis", icon: "fa-chart-line", warna: "from-green-500 to-teal-600", deskripsi: "Kuasai strategi bisnis, marketing digital, dan kewirausahaan", prospek: "Business Consultant, Marketing Manager, Entrepreneur", totalSemester: 8 },
+                { id: 3, nama: "Akuntansi", icon: "fa-calculator", warna: "from-yellow-500 to-orange-600", deskripsi: "Pahami laporan keuangan, audit, dan perpajakan", prospek: "Akuntan Publik, Auditor, Financial Analyst", totalSemester: 8 },
+                { id: 4, nama: "Psikologi", icon: "fa-brain", warna: "from-purple-500 to-pink-600", deskripsi: "Eksplorasi perilaku manusia dan konseling", prospek: "Psikolog, HR Specialist, Konselor", totalSemester: 8 },
+                { id: 5, nama: "Hukum", icon: "fa-gavel", warna: "from-red-500 to-rose-600", deskripsi: "Pelajari sistem hukum dan advokasi", prospek: "Advokat, Legal Counsel, Jaksa/Hakim", totalSemester: 8 }
+            ];
+
+            const MATA_KULIAH = {
+                1: {
+                    1: ["Dasar Pemrograman", "Matematika Diskrit", "Sistem Digital", "Algoritma & Struktur Data", "Pengantar Teknologi Informasi", "Bahasa Inggris Teknis"],
+                    2: ["Pemrograman Berorientasi Objek", "Basis Data", "Jaringan Komputer", "Arsitektur Komputer", "Statistika & Probabilitas", "Pemrograman Web Dasar"],
+                    3: ["Struktur Data Lanjut", "Pemrograman Mobile", "Sistem Operasi", "Rekayasa Perangkat Lunak", "Kecerdasan Buatan", "Interaksi Manusia-Komputer"],
+                    4: ["Pemrograman Web Lanjut", "Keamanan Komputer", "Data Mining", "Cloud Computing", "Pemrograman Fungsional", "Manajemen Proyek IT"],
+                    5: ["Machine Learning", "DevOps", "Internet of Things", "Big Data Analytics", "Pemrograman Game", "UX/UI Design"],
+                    6: ["Deep Learning", "Blockchain", "Computer Vision", "Natural Language Processing", "Ethical Hacking", "Digital Forensics"],
+                    7: ["Metodologi Penelitian", "Etika Profesi IT", "Startup Digital", "Manajemen Inovasi", "Technopreneurship", "Sertifikasi Profesi"],
+                    8: ["Skripsi/Tesis", "Magang Industri", "Kewirausahaan Digital", "Kapita Selekta", "Seminar Proposal", "Publikasi Ilmiah"]
+                },
+                2: {
+                    1: ["Pengantar Bisnis", "Ekonomi Mikro", "Manajemen Umum", "Akuntansi Dasar", "Matematika Bisnis", "Komunikasi Bisnis"],
+                    2: ["Pemasaran", "Manajemen SDM", "Keuangan Bisnis", "Statistik Bisnis", "Perilaku Organisasi", "Bisnis Internasional"],
+                    3: ["E-Bisnis", "Manajemen Operasi", "Kewirausahaan", "Studi Kelayakan", "Manajemen Risiko", "Bisnis Digital"],
+                    4: ["Strategi Bisnis", "Manajemen Inovasi", "Supply Chain Management", "Negosiasi Bisnis", "Corporate Governance", "CSR"],
+                    5: ["Analisis Bisnis", "Leadership", "Manajemen Mutu", "Business Ethics", "Hukum Bisnis", "Business Intelligence"],
+                    6: ["Digital Marketing", "Financial Technology", "Business Analytics", "Change Management", "Cross Cultural Management", "Family Business"],
+                    7: ["Metodologi Riset", "Strategic Management", "Business Simulation", "Investment Analysis", "Portfolio Management", "Merger & Acquisition"],
+                    8: ["Skripsi", "Magang", "Business Plan", "Business Incubation", "International Business", "Sertifikasi Profesi"]
+                },
+                3: {
+                    1: ["Pengantar Akuntansi", "Ekonomi Mikro", "Manajemen", "Matematika Ekonomi", "Pengantar Bisnis", "Bahasa Inggris"],
+                    2: ["Akuntansi Keuangan", "Akuntansi Biaya", "Perpajakan", "Statistik", "Akuntansi Manajemen", "Sistem Informasi Akuntansi"],
+                    3: ["Auditing", "Akuntansi Sektor Publik", "Analisis Laporan Keuangan", "Akuntansi Lanjutan", "Etika Profesi", "Akuntansi Syariah"],
+                    4: ["Akuntansi Forensik", "Manajemen Keuangan", "Akuntansi Internasional", "Akuntansi Perbankan", "Akuntansi Pertanggungjawaban", "Konsolidasi"],
+                    5: ["Akuntansi Sumber Daya", "Audit Internal", "Akuntansi Lingkungan", "Sistem Pengendalian", "Akuntansi Keperilakuan", "Perpajakan Lanjut"],
+                    6: ["Audit Forensik", "Akuntansi Derivatif", "Akuntansi Rumah Sakit", "Akuntansi Pendidikan", "Akuntansi Pemerintahan", "Audit Sektor Publik"],
+                    7: ["Metodologi Penelitian", "Akuntansi Digital", "Financial Modeling", "Risk Management", "Internal Control", "Corporate Reporting"],
+                    8: ["Skripsi", "Magang", "Sertifikasi Profesi", "Praktik Audit", "Seminar Akuntansi", "Publikasi Jurnal"]
+                },
+                4: {
+                    1: ["Psikologi Umum", "Biopsikologi", "Sejarah Psikologi", "Metode Penelitian", "Statistik Dasar", "Filsafat Ilmu"],
+                    2: ["Psikologi Perkembangan", "Psikologi Sosial", "Psikologi Kepribadian", "Statistik Psikologi", "Psikologi Kognitif", "Psikologi Pendidikan"],
+                    3: ["Psikologi Klinis", "Psikometri", "Psikologi Industri", "Psikologi Komunitas", "Psikologi Lintas Budaya", "Konseling Dasar"],
+                    4: ["Psikologi Eksperimen", "Psikologi Kesehatan", "Psikologi Forensik", "Intervensi Krisis", "Psikologi Positif", "Neuropsikologi"],
+                    5: ["Psikologi Olahraga", "Psikologi Konsumen", "Psikologi Keluarga", "Manajemen Stress", "Psikologi Pendidikan Lanjut", "Asesmen Psikologi"],
+                    6: ["Terapi Kognitif", "Psikologi Perkembangan Lanjut", "Psikologi Sosial Lanjut", "Psikologi Organisasi", "Konseling Keluarga", "Psikologi Remaja"],
+                    7: ["Etika Profesi", "Supervisi", "Psikologi Politik", "Psikologi Media", "Community Psychology", "Health Psychology"],
+                    8: ["Skripsi", "Magang", "Praktikum Klinis", "Sertifikasi Profesi", "Intervensi Komunitas", "Publikasi Ilmiah"]
+                },
+                5: {
+                    1: ["Pengantar Ilmu Hukum", "Hukum Perdata", "Hukum Pidana", "Hukum Tata Negara", "Logika Hukum", "Sosiologi Hukum"],
+                    2: ["Hukum Administrasi", "Hukum Internasional", "Hukum Dagang", "Hukum Acara", "Hukum Agraria", "Hukum Adat"],
+                    3: ["Hukum Lingkungan", "Hukum Ketenagakerjaan", "Hukum Pajak", "Hukum Perlindungan Konsumen", "Hukum Teknologi Informasi", "Hukum Investasi"],
+                    4: ["Hukum Persaingan Usaha", "Hukum Hak Kekayaan Intelektual", "Hukum Perbankan", "Hukum Asuransi", "Hukum Perkawinan", "Hukum Waris"],
+                    5: ["Hukum Kesehatan", "Hukum Maritim", "Hukum Pidana Khusus", "Hukum Perdata Internasional", "Hukum Humaniter", "Hukum Diplomatik"],
+                    6: ["Hukum Energi", "Hukum Telekomunikasi", "Hukum Perikanan", "Hukum Keimigrasian", "Hukum Pertanahan", "Hukum Tata Ruang"],
+                    7: ["Metodologi Penelitian Hukum", "Etika Advokat", "Hukum Acara Mahkamah Konstitusi", "Hukum Acara Arbitrase", "Legal Drafting", "Advocacy Skills"],
+                    8: ["Skripsi", "Magang", "Praktik Peradilan", "Sertifikasi Advokat", "Moot Court", "Legal Opinion Writing"]
+                }
+            };
+
+            let state = {
+                currentPage: 'landing',
+                user: null,
+                jurusan: null,
+                semesterAktif: 1,
+                ipk: 0,
+                selectedMatkul: null,
+                materiCache: {},
+                quizCache: {},
+                chatHistory: [],
+                absensi: []
+            };
+
+            function saveState() {
+                const toSave = {
+                    user: state.user,
+                    jurusan: state.jurusan,
+                    semesterAktif: state.semesterAktif,
+                    ipk: state.ipk,
+                    absensi: state.absensi
+                };
+                localStorage.setItem('pelajarin_state', JSON.stringify(toSave));
             }
-        }
 
-        // Generate Materi dengan Referensi
-        async function generateMateri(matkul, semester, jurusanNama) {
-            const prompt = `Buat materi pembelajaran KULIAH yang DETAIL dan PROFESIONAL untuk:
-- Mata Kuliah: ${matkul}
-- Semester: ${semester}
-- Jurusan: ${jurusanNama}
+            function loadState() {
+                const saved = localStorage.getItem('pelajarin_state');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        state.user = data.user;
+                        state.jurusan = data.jurusan;
+                        state.semesterAktif = data.semesterAktif || 1;
+                        state.ipk = data.ipk || 0;
+                        state.absensi = data.absensi || [];
+                        if (state.user && state.jurusan) {
+                            state.currentPage = 'dashboard';
+                        }
+                    } catch(e) { console.log('Load error:', e); }
+                }
+            }
 
-STRUKTUR MATERI (WAJIB):
-1. Pendahuluan (latar belakang & pentingnya mata kuliah ini)
-2. Konsep Dasar (definisi dan terminologi utama)
+            async function callAI(prompt, system = "Kamu adalah asisten akademik yang membantu mahasiswa.") {
+                const url = `${API_ENDPOINT}?prompt=${encodeURIComponent(prompt)}&system=${encodeURIComponent(system)}&temperature=0.7`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    return data.result || data.data || data.response || "Maaf, tidak ada respons.";
+                } catch (error) {
+                    console.error('API Error:', error);
+                    throw new Error(`Gagal: ${error.message}`);
+                }
+            }
+
+            async function generateMateri(matkul, semester, jurusanNama) {
+                const prompt = `Buat materi kuliah PROFESIONAL untuk:
+Mata Kuliah: ${matkul}
+Semester: ${semester}
+Jurusan: ${jurusanNama}
+
+STRUKTUR:
+1. Pendahuluan (latar belakang dan pentingnya)
+2. Konsep Dasar (definisi dan terminologi)
 3. Pembahasan Utama (minimal 3 sub-bab)
-4. Contoh Aplikasi/Kasus (minimal 2 contoh nyata)
+4. Contoh Aplikasi (2 contoh nyata)
 5. Rangkuman
-6. Daftar Pustaka (minimal 5 referensi dari GARUDA, ONESEARCH, NELITI)
+6. Daftar Pustaka (dari Garuda, IOS, Neliti)
 
-FORMAT: HTML dengan heading (h2, h3), paragraf, bullet points, dan highlight penting.
-Panjang: 800-1000 kata.
-Bahasa: Indonesia formal akademik.
-Sumber: WAJIB mencantumkan URL dari garuda.kemdikbud.go.id, onesearch.id, dan neliti.com`;
+Format HTML dengan heading h2/h3, paragraf, bullet points.
+Panjang: 600-800 kata.
+Bahasa Indonesia formal akademik.`;
 
-            return await callAI(prompt, "Anda adalah profesor ahli dengan pengalaman 20 tahun di bidangnya. Berikan materi yang komprehensif, update dengan perkembangan terbaru, dan berbasis penelitian.");
-        }
+                return await callAI(prompt, "Anda adalah profesor ahli dengan pengalaman 20 tahun.");
+            }
 
-        // Generate Quiz
-        async function generateQuiz(matkul, semester, jurusanNama) {
-            const prompt = `Buat 10 soal PILIHAN GANDA untuk mata kuliah "${matkul}" semester ${semester} jurusan ${jurusanNama}.
+            async function generateQuiz(matkul, semester, jurusanNama) {
+                const prompt = `Buat 5 soal PILIHAN GANDA untuk "${matkul}" semester ${semester} jurusan ${jurusanNama}.
 
-KETENTUAN:
-- Setiap soal harus menguji pemahaman konsep, bukan hafalan
-- Sertakan 1 soal analisis kasus
-- Sertakan 1 soal perhitungan/simulasi (jika relevan)
-
-FORMAT JSON:
+Format JSON valid:
 [
-  {
-    "question": "teks soal",
-    "options": ["pilihan A", "pilihan B", "pilihan C", "pilihan D"],
-    "answer": 0,
-    "explanation": "penjelasan singkat mengapa jawaban ini benar"
-  }
+  {"question": "soal 1", "options": ["a","b","c","d"], "answer": 0},
+  {"question": "soal 2", "options": ["a","b","c","d"], "answer": 1}
 ]
 
 Kirim HANYA JSON, tanpa teks lain.`;
 
-            const response = await callAI(prompt, "Anda adalah ahli dalam membuat assessment berkualitas tinggi. Buat soal yang menantang namun adil.");
-            const jsonMatch = response.match(/\[[\s\S]*\]/);
-            if (jsonMatch) return JSON.parse(jsonMatch[0]);
-            throw new Error("Format quiz tidak valid");
-        }
+                const response = await callAI(prompt, "Anda ahli membuat soal assessment.");
+                const match = response.match(/\[[\s\S]*\]/);
+                if (match) return JSON.parse(match[0]);
+                throw new Error("Format quiz tidak valid");
+            }
 
-        // Koreksi Essay
-        async function koreksiEssay(soal, jawaban, rubrik) {
-            const prompt = `Koreksi jawaban essay berikut:
-SOAL: ${soal}
-JAWABAN: ${jawaban}
-RUBRIK: ${rubrik}
+            function render() {
+                const app = document.getElementById('app');
+                if (!app) return;
 
-Beri nilai 0-100 dan feedback yang konstruktif. Format: JSON {"nilai": number, "feedback": "teks"}`;
-            const response = await callAI(prompt);
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            return jsonMatch ? JSON.parse(jsonMatch[0]) : { nilai: 70, feedback: response };
-        }
-
-        // ==================== KOMPONEN UI ====================
-        
-        // Landing Page
-        function LandingPage() {
-            return `
-                <div class="min-h-screen">
-                    <!-- Hero Section -->
-                    <div class="gradient-primary text-white">
-                        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-                            <div class="text-2xl font-bold flex items-center gap-2">
-                                <i class="fas fa-graduation-cap"></i>
-                                <span>Pelajarin</span>
+                if (state.currentPage === 'landing') {
+                    app.innerHTML = `
+                        <div class="gradient-primary text-white">
+                            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+                                <div class="text-2xl font-bold"><i class="fas fa-graduation-cap"></i> Pelajarin</div>
                             </div>
-                            <div class="hidden md:flex space-x-8">
-                                <a href="#" class="hover:opacity-80 transition">Beranda</a>
-                                <a href="#" class="hover:opacity-80 transition">Jurusan</a>
-                                <a href="#" class="hover:opacity-80 transition">Tentang</a>
-                                <a href="#" class="hover:opacity-80 transition">Kontak</a>
-                            </div>
-                        </nav>
-                        
-                        <div class="container mx-auto px-6 py-20 text-center">
-                            <h1 class="text-5xl md:text-7xl font-bold mb-6">Kuliah Online<br><span class="text-yellow-300">Berbasis AI</span></h1>
-                            <p class="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">Akses materi berkualitas dari referensi Garuda, IOS, Neliti. Belajar kapan saja, di mana saja dengan bantuan AI.</p>
-                            <div class="flex flex-wrap gap-4 justify-center">
-                                <button onclick="startRegistration()" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-xl transition flex items-center gap-2">
-                                    <i class="fas fa-rocket"></i> Mulai Kuliah Gratis
-                                </button>
-                                <button onclick="showJurusan()" class="border-2 border-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition flex items-center gap-2">
-                                    <i class="fas fa-search"></i> Lihat Jurusan
-                                </button>
+                            <div class="container mx-auto px-6 py-20 text-center">
+                                <h1 class="text-5xl md:text-7xl font-bold mb-6">Kuliah Online<br><span class="text-yellow-300">Berbasis AI</span></h1>
+                                <p class="text-xl mb-8 max-w-2xl mx-auto">Akses materi dari referensi Garuda, IOS, Neliti. Belajar kapan saja dengan AI.</p>
+                                <button onclick="startRegistration()" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:shadow-xl"><i class="fas fa-rocket"></i> Mulai Kuliah Gratis</button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Statistik -->
-                    <div class="container mx-auto px-6 py-16">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                            <div class="p-6"><div class="text-4xl font-bold text-purple-600">5+</div><div class="text-gray-600">Jurusan Unggulan</div></div>
-                            <div class="p-6"><div class="text-4xl font-bold text-purple-600">240+</div><div class="text-gray-600">Mata Kuliah</div></div>
-                            <div class="p-6"><div class="text-4xl font-bold text-purple-600">8</div><div class="text-gray-600">Semester</div></div>
-                            <div class="p-6"><div class="text-4xl font-bold text-purple-600">100%</div><div class="text-gray-600">Berbasis AI</div></div>
-                        </div>
-                    </div>
-
-                    <!-- Jurusan Preview -->
-                    <div class="container mx-auto px-6 py-16">
-                        <h2 class="text-3xl font-bold text-center mb-12">Program Studi <span class="gradient-primary bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">Terbaik</span></h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            ${JURUSAN.map(jurusan => `
-                                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover cursor-pointer" onclick="showJurusanDetail(${jurusan.id})">
-                                    <div class="h-32 ${jurusan.warna.replace('from-', 'bg-gradient-to-r from-')} flex items-center justify-center">
-                                        <i class="fas ${jurusan.icon} text-6xl text-white"></i>
-                                    </div>
-                                    <div class="p-6">
-                                        <h3 class="text-xl font-bold mb-2">${jurusan.nama}</h3>
-                                        <p class="text-gray-600 text-sm mb-4">${jurusan.deskripsi}</p>
-                                        <div class="flex justify-between items-center text-sm">
-                                            <span class="text-gray-500"><i class="far fa-clock"></i> ${jurusan.totalSemester} semester</span>
-                                            <span class="text-purple-600 font-semibold">Detail →</span>
+                        <div class="container mx-auto px-6 py-16">
+                            <h2 class="text-3xl font-bold text-center mb-12">Program Studi <span class="text-purple-600">Terbaik</span></h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                ${JURUSAN.map(j => `
+                                    <div onclick="selectJurusan(${j.id}, '${j.nama}')" class="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer card-hover">
+                                        <div class="h-28 bg-gradient-to-r ${j.warna} flex items-center justify-center">
+                                            <i class="fas ${j.icon} text-5xl text-white"></i>
                                         </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <!-- Fitur -->
-                    <div class="bg-gray-100 py-16">
-                        <div class="container mx-auto px-6">
-                            <h2 class="text-3xl font-bold text-center mb-12">Fitur <span class="gradient-primary bg-clip-text text-transparent">Lengkap</span></h2>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div class="text-center p-6"><div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-robot text-2xl text-purple-600"></i></div><h3 class="font-bold mb-2">AI-Powered Learning</h3><p class="text-gray-600">Generate materi, quiz, dan chat dengan AI</p></div>
-                                <div class="text-center p-6"><div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-database text-2xl text-purple-600"></i></div><h3 class="font-bold mb-2">Referensi Akreditasi</h3><p class="text-gray-600">Garuda, IOS, Neliti - sumber terpercaya</p></div>
-                                <div class="text-center p-6"><div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-chart-line text-2xl text-purple-600"></i></div><h3 class="font-bold mb-2">Tracking Nilai</h3><p class="text-gray-600">Pantau IPK dan progress semester</p></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Dashboard Page
-        function DashboardPage() {
-            const jurusanData = JURUSAN.find(j => j.id === state.jurusan?.id);
-            const matkulSemester = MATA_KULIAH[state.jurusan?.id]?.[state.semesterAktif] || [];
-            
-            return `
-                <div class="min-h-screen bg-gray-50">
-                    <!-- Top Bar -->
-                    <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
-                        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                            <div class="flex items-center gap-2 text-xl font-bold">
-                                <i class="fas fa-graduation-cap"></i>
-                                <span>Pelajarin</span>
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <span class="hidden md:inline text-sm">${state.user?.nama || 'Mahasiswa'}</span>
-                                <i class="fas fa-user-circle text-2xl cursor-pointer hover:opacity-80" onclick="showProfile()"></i>
-                                <button onclick="logout()" class="bg-white/20 px-3 py-1 rounded-lg text-sm hover:bg-white/30"><i class="fas fa-sign-out-alt"></i> Keluar</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="container mx-auto px-4 py-6">
-                        <!-- Welcome Banner -->
-                        <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 mb-6">
-                            <div class="flex flex-wrap justify-between items-center">
-                                <div>
-                                    <h1 class="text-2xl font-bold">Halo, ${state.user?.nama || 'Mahasiswa'}! 👋</h1>
-                                    <p class="text-gray-700">${jurusanData?.nama} | Semester ${state.semesterAktif}</p>
-                                </div>
-                                <div class="flex gap-3">
-                                    <button onclick="absenHariIni()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"><i class="fas fa-check-circle"></i> Absen</button>
-                                    <button onclick="showTranskrip()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"><i class="fas fa-chart-simple"></i> Transkrip</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Stats Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-purple-500"><div class="text-gray-500 text-sm">IPK</div><div class="text-2xl font-bold">${state.ipk.toFixed(2)}</div></div>
-                            <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-500"><div class="text-gray-500 text-sm">SKS Tempuh</div><div class="text-2xl font-bold">${state.semesterAktif * 18}</div></div>
-                            <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500"><div class="text-gray-500 text-sm">Mata Kuliah</div><div class="text-2xl font-bold">${matkulSemester.length}</div></div>
-                            <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-orange-500"><div class="text-gray-500 text-sm">Progress</div><div class="text-2xl font-bold">${Math.round((state.semesterAktif-1)/8*100)}%</div></div>
-                        </div>
-
-                        <!-- Mata Kuliah Semester Ini -->
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fas fa-book-open text-purple-600"></i> Mata Kuliah Semester ${state.semesterAktif}</h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                ${matkulSemester.map((matkul, idx) => `
-                                    <div class="border rounded-xl p-4 hover:shadow-md transition cursor-pointer group" onclick="openKelas('${matkul}', ${state.semesterAktif})">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <div class="text-sm text-purple-600 font-semibold">MK${String(idx+1).padStart(2,'0')}</div>
-                                                <h3 class="font-bold group-hover:text-purple-600">${matkul}</h3>
-                                                <div class="text-xs text-gray-500 mt-1"><i class="far fa-clock"></i> 3 SKS</div>
-                                            </div>
-                                            <i class="fas fa-chevron-right text-gray-400 group-hover:text-purple-600"></i>
+                                        <div class="p-5">
+                                            <h3 class="text-xl font-bold mb-2">${j.nama}</h3>
+                                            <p class="text-gray-600 text-sm">${j.deskripsi}</p>
                                         </div>
                                     </div>
                                 `).join('')}
                             </div>
                         </div>
-
-                        <!-- Recent Activity -->
-                        <div class="bg-white rounded-2xl shadow-sm p-6 mt-6">
-                            <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fas fa-history text-purple-600"></i> Aktivitas Terakhir</h2>
-                            <div id="recentActivities" class="space-y-2 text-gray-600 text-sm"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Kelas Page (Belajar)
-        function KelasPage() {
-            return `
-                <div class="min-h-screen bg-gray-50">
-                    <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
-                        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-                            <button onclick="backToDashboard()" class="hover:opacity-80"><i class="fas fa-arrow-left"></i> Kembali</button>
-                            <div class="font-semibold">${state.selectedMatkul?.nama || 'Mata Kuliah'}</div>
-                            <div></div>
-                        </div>
-                    </div>
-
-                    <div class="container mx-auto px-4 py-6">
-                        <!-- Tab Navigation -->
-                        <div class="flex border-b mb-6">
-                            <button onclick="switchTab('materi')" id="tabMateriBtn" class="px-6 py-3 font-semibold border-b-2 border-purple-600 text-purple-600">📖 Materi</button>
-                            <button onclick="switchTab('quiz')" id="tabQuizBtn" class="px-6 py-3 font-semibold text-gray-500 hover:text-gray-700">✏️ Quiz</button>
-                            <button onclick="switchTab('chat')" id="tabChatBtn" class="px-6 py-3 font-semibold text-gray-500 hover:text-gray-700">💬 Chat AI</button>
-                        </div>
-
-                        <!-- Tab Content -->
-                        <div id="materiTab" class="tab-content">
-                            <div class="bg-white rounded-2xl shadow-sm p-6">
-                                <div class="flex gap-3 mb-6">
-                                    <button onclick="loadMateri()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"><i class="fas fa-sync-alt"></i> Generate Materi</button>
-                                    <button onclick="downloadMateriPDF()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"><i class="fas fa-download"></i> Download PDF</button>
+                    `;
+                } 
+                else if (state.currentPage === 'dashboard') {
+                    const jurusanData = JURUSAN.find(j => j.id === state.jurusan?.id);
+                    const matkulList = MATA_KULIAH[state.jurusan?.id]?.[state.semesterAktif] || [];
+                    
+                    app.innerHTML = `
+                        <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
+                            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                                <div class="text-xl font-bold"><i class="fas fa-graduation-cap"></i> Pelajarin</div>
+                                <div class="flex items-center gap-4">
+                                    <span>${state.user?.nama || 'Mahasiswa'}</span>
+                                    <button onclick="logout()" class="bg-white/20 px-3 py-1 rounded-lg"><i class="fas fa-sign-out-alt"></i></button>
                                 </div>
-                                <div id="materiContent" class="prose max-w-none">
-                                    <div class="text-center text-gray-500 py-12">
-                                        <i class="fas fa-file-alt text-5xl mb-4 opacity-50"></i>
-                                        <p>Klik "Generate Materi" untuk mulai belajar</p>
+                            </div>
+                        </div>
+                        <div class="container mx-auto px-4 py-6">
+                            <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 mb-6">
+                                <div class="flex flex-wrap justify-between items-center">
+                                    <div>
+                                        <h1 class="text-2xl font-bold">Halo, ${state.user?.nama || 'Mahasiswa'}! 👋</h1>
+                                        <p>${jurusanData?.nama} | Semester ${state.semesterAktif}</p>
+                                    </div>
+                                    <button onclick="absenHariIni()" class="bg-green-500 text-white px-4 py-2 rounded-lg"><i class="fas fa-check-circle"></i> Absen</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-purple-500"><div class="text-gray-500 text-sm">IPK</div><div class="text-2xl font-bold">${state.ipk.toFixed(2)}</div></div>
+                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-blue-500"><div class="text-gray-500 text-sm">SKS</div><div class="text-2xl font-bold">${state.semesterAktif * 18}</div></div>
+                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-green-500"><div class="text-gray-500 text-sm">MK Semester</div><div class="text-2xl font-bold">${matkulList.length}</div></div>
+                                <div class="bg-white rounded-xl p-4 shadow border-l-4 border-orange-500"><div class="text-gray-500 text-sm">Progress</div><div class="text-2xl font-bold">${Math.round((state.semesterAktif-1)/8*100)}%</div></div>
+                            </div>
+                            <div class="bg-white rounded-2xl shadow p-6">
+                                <h2 class="text-xl font-bold mb-4"><i class="fas fa-book-open text-purple-600"></i> Mata Kuliah Semester ${state.semesterAktif}</h2>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    ${matkulList.map((mk, idx) => `
+                                        <div onclick="openKelas('${mk.replace(/'/g, "\\'")}', ${state.semesterAktif})" class="border rounded-xl p-3 hover:shadow-md cursor-pointer flex justify-between items-center">
+                                            <span><span class="text-purple-600 font-semibold">${String(idx+1).padStart(2,'0')}</span> ${mk}</span>
+                                            <i class="fas fa-chevron-right text-gray-400"></i>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-2xl shadow p-6 mt-6">
+                                <h2 class="text-xl font-bold mb-4"><i class="fas fa-history text-purple-600"></i> Riwayat Absensi</h2>
+                                <div id="riwayatAbsensi" class="text-sm text-gray-600">${state.absensi.length === 0 ? '<p>Belum ada absensi</p>' : state.absensi.slice(-5).reverse().map(a => `<div>📅 ${a.tanggal} - ${a.jam}</div>`).join('')}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                else if (state.currentPage === 'kelas') {
+                    app.innerHTML = `
+                        <div class="gradient-primary text-white sticky top-0 z-50 shadow-lg">
+                            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                                <button onclick="backToDashboard()" class="hover:opacity-80"><i class="fas fa-arrow-left"></i> Kembali</button>
+                                <div class="font-semibold">${state.selectedMatkul?.nama || 'Mata Kuliah'}</div>
+                                <div class="w-16"></div>
+                            </div>
+                        </div>
+                        <div class="container mx-auto px-4 py-6">
+                            <div class="flex border-b mb-6">
+                                <button onclick="switchTab('materi')" id="btnMateri" class="px-6 py-3 font-semibold border-b-2 border-purple-600 text-purple-600">📖 Materi</button>
+                                <button onclick="switchTab('quiz')" id="btnQuiz" class="px-6 py-3 font-semibold text-gray-500">✏️ Quiz</button>
+                                <button onclick="switchTab('chat')" id="btnChat" class="px-6 py-3 font-semibold text-gray-500">💬 Chat AI</button>
+                            </div>
+                            <div id="tabMateri" class="tab-content">
+                                <div class="bg-white rounded-2xl shadow p-6">
+                                    <div class="flex gap-3 mb-6">
+                                        <button onclick="loadMateri()" class="bg-purple-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-sync-alt"></i> Generate Materi</button>
+                                        <button onclick="downloadPDF()" class="bg-red-500 text-white px-4 py-2 rounded-lg"><i class="fas fa-download"></i> Download PDF</button>
+                                    </div>
+                                    <div id="materiContent" class="prose max-w-none"><div class="text-center text-gray-400 py-12"><i class="fas fa-file-alt text-5xl mb-2 opacity-50"></i><p>Klik Generate Materi</p></div></div>
+                                </div>
+                            </div>
+                            <div id="tabQuiz" class="tab-content hidden">
+                                <div class="bg-white rounded-2xl shadow p-6">
+                                    <button onclick="startQuiz()" class="bg-green-600 text-white px-4 py-2 rounded-lg mb-6"><i class="fas fa-play"></i> Mulai Quiz</button>
+                                    <div id="quizContent"></div>
+                                </div>
+                            </div>
+                            <div id="tabChat" class="tab-content hidden">
+                                <div class="bg-white rounded-2xl shadow p-6">
+                                    <div id="chatMessages" class="h-96 overflow-y-auto mb-4 border rounded-lg p-4 bg-gray-50"></div>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="chatInput" class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-purple-600" placeholder="Tanya tentang materi...">
+                                        <button onclick="sendChat()" class="bg-purple-600 text-white px-6 py-2 rounded-lg"><i class="fas fa-paper-plane"></i> Kirim</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div id="quizTab" class="tab-content hidden">
-                            <div class="bg-white rounded-2xl shadow-sm p-6">
-                                <button onclick="startQuiz()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 mb-6"><i class="fas fa-play"></i> Mulai Quiz</button>
-                                <div id="quizContent"></div>
-                            </div>
-                        </div>
-
-                        <div id="chatTab" class="tab-content hidden">
-                            <div class="bg-white rounded-2xl shadow-sm p-6">
-                                <div id="chatMessages" class="h-96 overflow-y-auto mb-4 border rounded-lg p-4 bg-gray-50"></div>
-                                <div class="flex gap-2">
-                                    <input type="text" id="chatInput" placeholder="Tanyakan tentang materi..." class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:border-purple-600">
-                                    <button onclick="sendChat()" class="bg-purple-600 text-white px-6 py-2 rounded-lg"><i class="fas fa-paper-plane"></i> Kirim</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Profile Modal
-        function ProfileModal() {
-            Swal.fire({
-                title: 'Profile Mahasiswa',
-                html: `
-                    <div class="text-left">
-                        <div class="mb-3"><label class="font-semibold">Nama Lengkap</label><input id="editNama" class="w-full border rounded-lg p-2 mt-1" value="${state.user?.nama || ''}"></div>
-                        <div class="mb-3"><label class="font-semibold">Email</label><input id="editEmail" class="w-full border rounded-lg p-2 mt-1" value="${state.user?.email || ''}"></div>
-                        <div class="mb-3"><label class="font-semibold">Jurusan</label><input class="w-full border rounded-lg p-2 mt-1 bg-gray-100" value="${state.jurusan?.nama || ''}" disabled></div>
-                        <div class="mb-3"><label class="font-semibold">Semester Aktif</label><input id="editSemester" type="number" min="1" max="8" class="w-full border rounded-lg p-2 mt-1" value="${state.semesterAktif}"></div>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Simpan',
-                preConfirm: () => {
-                    const nama = document.getElementById('editNama').value;
-                    const email = document.getElementById('editEmail').value;
-                    const semester = parseInt(document.getElementById('editSemester').value);
-                    if (state.user) state.user.nama = nama;
-                    if (state.user) state.user.email = email;
-                    state.semesterAktif = Math.min(8, Math.max(1, semester));
-                    saveState();
-                    render();
+                    `;
+                    
+                    if (state.chatHistory && state.chatHistory.length > 0) {
+                        setTimeout(() => {
+                            const container = document.getElementById('chatMessages');
+                            if (container) {
+                                container.innerHTML = state.chatHistory.map(h => `
+                                    <div class="text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(h.question)}</span></div>
+                                    <div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(h.answer)}</span></div>
+                                `).join('');
+                            }
+                        }, 100);
+                    }
                 }
-            });
-        }
+            }
 
-        // ==================== FUNGSI UTAMA ====================
-        
-        window.startRegistration = async () => {
-            const { value: form } = await Swal.fire({
-                title: 'Daftar Mahasiswa Baru',
-                html: `
-                    <input id="nama" class="swal2-input" placeholder="Nama Lengkap">
-                    <input id="email" class="swal2-input" placeholder="Email">
-                    <select id="jurusan" class="swal2-select">
-                        <option value="">Pilih Jurusan</option>
-                        ${JURUSAN.map(j => `<option value="${j.id}">${j.nama}</option>`).join('')}
-                    </select>
-                `,
-                focusConfirm: false,
-                preConfirm: () => {
-                    return {
-                        nama: document.getElementById('nama').value,
-                        email: document.getElementById('email').value,
-                        jurusanId: parseInt(document.getElementById('jurusan').value)
-                    };
+            window.startRegistration = async () => {
+                const { value: nama } = await Swal.fire({
+                    title: 'Daftar Mahasiswa Baru',
+                    input: 'text',
+                    inputPlaceholder: 'Nama Lengkap',
+                    showCancelButton: true
+                });
+                if (nama) {
+                    const { value: jurusanId } = await Swal.fire({
+                        title: 'Pilih Jurusan',
+                        input: 'select',
+                        inputOptions: Object.fromEntries(JURUSAN.map(j => [j.id, j.nama])),
+                        showCancelButton: true
+                    });
+                    if (jurusanId) {
+                        state.user = { nama: nama };
+                        state.jurusan = JURUSAN.find(j => j.id == jurusanId);
+                        state.semesterAktif = 1;
+                        state.ipk = 0;
+                        state.absensi = [];
+                        saveState();
+                        state.currentPage = 'dashboard';
+                        render();
+                        Swal.fire('Berhasil!', 'Selamat datang di Pelajarin!', 'success');
+                    }
                 }
-            });
-            
-            if (form && form.nama && form.email && form.jurusanId) {
-                state.user = { nama: form.nama, email: form.email };
-                state.jurusan = JURUSAN.find(j => j.id === form.jurusanId);
-                state.semesterAktif = 1;
-                state.ipk = 0;
-                saveState();
+            };
+
+            window.selectJurusan = (id, nama) => {
+                Swal.fire({
+                    title: 'Ambil Jurusan Ini?',
+                    text: nama,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Daftar'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        startRegistration();
+                    }
+                });
+            };
+
+            window.openKelas = (namaMatkul, semester) => {
+                state.selectedMatkul = { nama: namaMatkul, semester: semester, jurusan: state.jurusan.nama };
+                state.currentPage = 'kelas';
+                render();
+            };
+
+            window.backToDashboard = () => {
                 state.currentPage = 'dashboard';
                 render();
-                Swal.fire('Berhasil!', 'Selamat datang di Pelajarin!', 'success');
-            }
-        };
+            };
 
-        window.showJurusan = () => {
-            const jurusanList = JURUSAN.map(j => `${j.nama}: ${j.deskripsi}`).join('\n\n');
-            Swal.fire('Program Studi', jurusanList, 'info');
-        };
-
-        window.showJurusanDetail = (id) => {
-            const jurusan = JURUSAN.find(j => j.id === id);
-            Swal.fire({
-                title: jurusan.nama,
-                html: `
-                    <div class="text-left">
-                        <p class="mb-2">${jurusan.deskripsi}</p>
-                        <p class="font-semibold mt-3">Prospek Karir:</p>
-                        <p class="text-sm">${jurusan.prospek}</p>
-                        <p class="font-semibold mt-3">Total Semester:</p>
-                        <p>${jurusan.totalSemester} semester</p>
-                        <p class="font-semibold mt-3">Mata Kuliah Unggulan:</p>
-                        <ul class="list-disc list-inside text-sm">
-                            ${MATA_KULIAH[id]?.[1]?.slice(0,4).map(mk => `<li>${mk}</li>`).join('') || ''}
-                        </ul>
-                    </div>
-                `,
-                confirmButtonText: 'Ambil Jurusan Ini',
-                showCancelButton: true
-            }).then(result => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Daftar Sekarang',
-                        html: `<input id="nama" class="swal2-input" placeholder="Nama Lengkap"><input id="email" class="swal2-input" placeholder="Email">`,
-                        preConfirm: () => {
-                            return { nama: document.getElementById('nama').value, email: document.getElementById('email').value };
-                        }
-                    }).then(res => {
-                        if (res.value && res.value.nama) {
-                            state.user = res.value;
-                            state.jurusan = jurusan;
-                            state.semesterAktif = 1;
-                            state.ipk = 0;
-                            saveState();
-                            state.currentPage = 'dashboard';
-                            render();
-                        }
-                    });
-                }
-            });
-        };
-
-        window.openKelas = (namaMatkul, semester) => {
-            state.selectedMatkul = { nama: namaMatkul, semester: semester, jurusan: state.jurusan.nama };
-            state.currentPage = 'kelas';
-            render();
-        };
-
-        window.backToDashboard = () => {
-            state.currentPage = 'dashboard';
-            render();
-        };
-
-        window.loadMateri = async () => {
-            const container = document.getElementById('materiContent');
-            if (!container) return;
-            
-            container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-purple-600"></i><p class="mt-2">Men-generate materi dengan referensi akademik...</p></div>';
-            
-            try {
-                const materi = await generateMateri(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
-                const materiKey = `${state.selectedMatkul.jurusan}_${state.selectedMatkul.semester}_${state.selectedMatkul.nama}`;
-                state.materiCache[materiKey] = materi;
-                container.innerHTML = `<div class="prose max-w-none">${materi}</div>`;
-            } catch (error) {
-                container.innerHTML = `<div class="text-center text-red-500 py-12"><i class="fas fa-exclamation-triangle text-4xl"></i><p>${error.message}</p></div>`;
-            }
-        };
-
-        window.downloadMateriPDF = async () => {
-            const materiContent = document.getElementById('materiContent');
-            if (!materiContent || !materiContent.innerText.trim()) {
-                Swal.fire('Info', 'Generate materi dulu ya!', 'info');
-                return;
-            }
-            
-            const element = document.createElement('div');
-            element.innerHTML = materiContent.innerHTML;
-            element.style.padding = '40px';
-            element.style.fontFamily = 'Arial, sans-serif';
-            document.body.appendChild(element);
-            
-            const canvas = await html2canvas(element, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgWidth = 190;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-            pdf.save(`${state.selectedMatkul.nama}_Materi.pdf`);
-            document.body.removeChild(element);
-            Swal.fire('Sukses!', 'PDF berhasil diunduh', 'success');
-        };
-
-        window.startQuiz = async () => {
-            Swal.fire({ title: 'Memuat Quiz...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            
-            try {
-                const quizKey = `${state.selectedMatkul.jurusan}_${state.selectedMatkul.semester}_${state.selectedMatkul.nama}`;
-                let quiz = state.quizCache[quizKey];
-                if (!quiz) {
-                    quiz = await generateQuiz(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
-                    state.quizCache[quizKey] = quiz;
-                }
-                showQuizQuestion(quiz, 0, []);
-            } catch (error) {
-                Swal.fire('Error', `Gagal memuat quiz: ${error.message}`, 'error');
-            }
-        };
-
-        function showQuizQuestion(quiz, index, jawaban) {
-            if (index >= quiz.length) {
-                hitungNilaiQuiz(quiz, jawaban);
-                return;
-            }
-            
-            const q = quiz[index];
-            const optionsHtml = q.options.map((opt, i) => `
-                <label class="flex items-center p-3 border rounded-lg mb-2 cursor-pointer hover:bg-gray-50">
-                    <input type="radio" name="answer" value="${i}" class="mr-3">
-                    <span>${String.fromCharCode(65+i)}. ${opt}</span>
-                </label>
-            `).join('');
-            
-            Swal.fire({
-                title: `Soal ${index+1}/${quiz.length}`,
-                html: `<div class="text-left"><p class="font-bold mb-4">${q.question}</p>${optionsHtml}</div>`,
-                showCancelButton: true,
-                confirmButtonText: 'Jawab',
-                preConfirm: () => {
-                    const selected = document.querySelector('input[name="answer"]:checked');
-                    if (!selected) return Swal.showValidationMessage('Pilih jawaban dulu!');
-                    return parseInt(selected.value);
-                }
-            }).then(result => {
-                if (result.isConfirmed) {
-                    jawaban.push({ soal: q, jawabanUser: result.value });
-                    showQuizQuestion(quiz, index+1, jawaban);
-                }
-            });
-        }
-
-        function hitungNilaiQuiz(quiz, jawaban) {
-            let benar = 0;
-            jawaban.forEach((j, idx) => {
-                if (j.jawabanUser === j.soal.answer) benar++;
-            });
-            const nilai = (benar / quiz.length) * 100;
-            
-            Swal.fire({
-                title: 'Hasil Quiz',
-                html: `<div class="text-center"><div class="text-5xl font-bold ${nilai >= 70 ? 'text-green-600' : 'text-red-600'}">${Math.round(nilai)}</div><p class="mt-2">Benar: ${benar}/${quiz.length}</p><p class="text-sm text-gray-500 mt-3">${nilai >= 70 ? '🎉 Selamat! Pertahankan prestasimu!' : '📚 Terus belajar dan jangan menyerah!'}</p></div>`,
-                icon: nilai >= 70 ? 'success' : 'info'
-            });
-            
-            // Update IPK
-            state.ipk = (state.ipk * 0.7 + (nilai/25) * 0.3);
-            if (state.ipk > 4) state.ipk = 4;
-            saveState();
-        }
-
-        window.sendChat = async () => {
-            const input = document.getElementById('chatInput');
-            const messagesDiv = document.getElementById('chatMessages');
-            if (!input || !messagesDiv) return;
-            
-            const question = input.value.trim();
-            if (!question) return;
-            
-            messagesDiv.innerHTML += `<div class="text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(question)}</span></div>`;
-            input.value = '';
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
-            messagesDiv.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2"><i class="fas fa-spinner fa-spin"></i> AI sedang mengetik...</span></div>`;
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
-            try {
-                const prompt = `Sebagai dosen ahli untuk mata kuliah ${state.selectedMatkul.nama} (semester ${state.selectedMatkul.semester}, jurusan ${state.selectedMatkul.jurusan}), jawab pertanyaan mahasiswa dengan detail dan berikan referensi: ${question}`;
-                const answer = await callAI(prompt);
+            window.switchTab = (tab) => {
+                document.getElementById('tabMateri').classList.add('hidden');
+                document.getElementById('tabQuiz').classList.add('hidden');
+                document.getElementById('tabChat').classList.add('hidden');
+                document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
                 
-                const lastMsg = messagesDiv.lastElementChild;
-                if (lastMsg) lastMsg.remove();
+                document.getElementById('btnMateri').classList.remove('border-purple-600', 'text-purple-600');
+                document.getElementById('btnQuiz').classList.remove('border-purple-600', 'text-purple-600');
+                document.getElementById('btnChat').classList.remove('border-purple-600', 'text-purple-600');
+                document.getElementById('btnMateri').classList.add('text-gray-500');
+                document.getElementById('btnQuiz').classList.add('text-gray-500');
+                document.getElementById('btnChat').classList.add('text-gray-500');
                 
-                messagesDiv.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(answer)}</span></div>`;
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                
-                state.chatHistory.push({ question, answer });
-            } catch (error) {
-                const lastMsg = messagesDiv.lastElementChild;
-                if (lastMsg) lastMsg.remove();
-                messagesDiv.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-red-100 text-red-600 rounded-lg px-4 py-2">Error: ${error.message}</span></div>`;
-            }
-        };
-
-        window.absenHariIni = async () => {
-            const today = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const now = new Date().toLocaleTimeString('id-ID');
-            
-            Swal.fire({
-                title: 'Absensi Berhasil!',
-                html: `📅 ${today}<br>🕐 ${now}<br>✅ Status: Hadir`,
-                icon: 'success',
-                timer: 2000
-            });
-            
-            // Simpan ke localStorage activity
-            const activities = JSON.parse(localStorage.getItem('pelajarin_activities') || '[]');
-            activities.unshift({ type: 'absen', date: today, time: now, matkul: 'Absensi Harian' });
-            localStorage.setItem('pelajarin_activities', JSON.stringify(activities.slice(0, 10)));
-            
-            // Update recent activities di dashboard
-            if (state.currentPage === 'dashboard') {
-                updateRecentActivities();
-            }
-        };
-
-        window.showProfile = () => ProfileModal();
-        window.showTranskrip = () => {
-            Swal.fire({
-                title: 'Transkrip Nilai',
-                html: `<div class="text-center"><div class="text-4xl font-bold text-purple-600">${state.ipk.toFixed(2)}</div><p>IPK Kumulatif</p><div class="border-t mt-4 pt-4"><p class="font-semibold">Semester Aktif: ${state.semesterAktif}</p><p>Total SKS: ${state.semesterAktif * 18}</p></div></div>`,
-                icon: 'info'
-            });
-        };
-
-        window.logout = () => {
-            Swal.fire({
-                title: 'Keluar?',
-                text: 'Apakah Anda yakin ingin keluar?',
-                icon: 'question',
-                showCancelButton: true
-            }).then(result => {
-                if (result.isConfirmed) {
-                    localStorage.removeItem('pelajarin_state');
-                    state = { currentPage: 'landing', user: null, jurusan: null, semesterAktif: 1, ipk: 0, selectedMatkul: null, materiCache: {}, quizCache: {}, chatHistory: [] };
-                    render();
-                }
-            });
-        };
-
-        window.switchTab = (tab) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.getElementById(`${tab}Tab`).classList.remove('hidden');
-            
-            ['materi', 'quiz', 'chat'].forEach(t => {
-                const btn = document.getElementById(`${t}Btn`);
-                if (btn) {
-                    btn.classList.remove('border-purple-600', 'text-purple-600');
-                    btn.classList.add('text-gray-500');
-                }
-            });
-            const activeBtn = document.getElementById(`${tab}Btn`);
-            if (activeBtn) {
+                const activeBtn = document.getElementById(`btn${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
                 activeBtn.classList.add('border-purple-600', 'text-purple-600');
                 activeBtn.classList.remove('text-gray-500');
-            }
-        };
+            };
 
-        function updateRecentActivities() {
-            const container = document.getElementById('recentActivities');
-            if (!container) return;
-            const activities = JSON.parse(localStorage.getItem('pelajarin_activities') || '[]');
-            if (activities.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-400">Belum ada aktivitas</p>';
-            } else {
-                container.innerHTML = activities.map(act => `
-                    <div class="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
-                        <span><i class="fas fa-calendar-check text-green-500 mr-2"></i> ${act.type === 'absen' ? 'Absensi' : 'Quiz'}</span>
-                        <span class="text-xs">${act.date} ${act.time || ''}</span>
-                    </div>
-                `).join('');
-            }
-        }
+            window.loadMateri = async () => {
+                const container = document.getElementById('materiContent');
+                if (!container) return;
+                container.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-purple-600"></i><p class="mt-2">AI sedang membuat materi...</p></div>';
+                try {
+                    const materi = await generateMateri(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
+                    container.innerHTML = `<div class="prose max-w-none">${materi}</div>`;
+                } catch (error) {
+                    container.innerHTML = `<div class="text-center text-red-500 py-12">Error: ${error.message}</div>`;
+                }
+            };
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+            window.downloadPDF = async () => {
+                const container = document.getElementById('materiContent');
+                if (!container || !container.innerText.trim() || container.innerText.includes('Klik Generate Materi')) {
+                    Swal.fire('Info', 'Generate materi dulu ya!', 'info');
+                    return;
+                }
+                const element = document.createElement('div');
+                element.innerHTML = container.innerHTML;
+                element.style.padding = '40px';
+                element.style.fontFamily = 'Arial';
+                document.body.appendChild(element);
+                const canvas = await html2canvas(element, { scale: 2 });
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 190;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                pdf.save(`${state.selectedMatkul.nama}_Materi.pdf`);
+                document.body.removeChild(element);
+                Swal.fire('Sukses!', 'PDF berhasil diunduh', 'success');
+            };
 
-        // Render utama
-        function render() {
-            const app = document.getElementById('app');
-            if (state.currentPage === 'landing') {
-                app.innerHTML = LandingPage();
-            } else if (state.currentPage === 'dashboard') {
-                app.innerHTML = DashboardPage();
-                setTimeout(updateRecentActivities, 100);
-            } else if (state.currentPage === 'kelas') {
-                app.innerHTML = KelasPage();
-                // Load chat history jika ada
-                setTimeout(() => {
-                    const messagesDiv = document.getElementById('chatMessages');
-                    if (messagesDiv && state.chatHistory) {
-                        messagesDiv.innerHTML = state.chatHistory.map(h => `
-                            <div class="text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(h.question)}</span></div>
-                            <div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2 max-w-[80%]">${escapeHtml(h.answer)}</span></div>
-                        `).join('');
+            window.startQuiz = async () => {
+                Swal.fire({ title: 'Memuat Quiz...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    const quiz = await generateQuiz(state.selectedMatkul.nama, state.selectedMatkul.semester, state.selectedMatkul.jurusan);
+                    showQuizQuestion(quiz, 0, []);
+                } catch (error) {
+                    Swal.fire('Error', error.message, 'error');
+                }
+            };
+
+            function showQuizQuestion(quiz, index, jawaban) {
+                if (index >= quiz.length) {
+                    let benar = jawaban.filter((j, i) => j === quiz[i].answer).length;
+                    let nilai = (benar / quiz.length) * 100;
+                    state.ipk = (state.ipk * 0.8 + (nilai / 25) * 0.2);
+                    if (state.ipk > 4) state.ipk = 4;
+                    saveState();
+                    Swal.fire('Hasil Quiz', `Nilai: ${Math.round(nilai)}\nBenar: ${benar}/${quiz.length}\nIPK: ${state.ipk.toFixed(2)}`, 'success');
+                    return;
+                }
+                const q = quiz[index];
+                Swal.fire({
+                    title: `Soal ${index+1}/${quiz.length}`,
+                    html: `<div class="text-left"><p class="font-bold mb-4">${q.question}</p>${q.options.map((opt, i) => `<label class="flex items-center p-2 border rounded mb-2"><input type="radio" name="ans" value="${i}" class="mr-3"> ${String.fromCharCode(65+i)}. ${opt}</label>`).join('')}</div>`,
+                    preConfirm: () => {
+                        const selected = document.querySelector('input[name="ans"]:checked');
+                        if (!selected) Swal.showValidationMessage('Pilih jawaban!');
+                        return selected ? parseInt(selected.value) : null;
                     }
-                }, 100);
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        jawaban.push(result.value);
+                        showQuizQuestion(quiz, index + 1, jawaban);
+                    }
+                });
             }
-        }
 
-        // Inisialisasi
-        loadState();
+            window.sendChat = async () => {
+                const input = document.getElementById('chatInput');
+                const container = document.getElementById('chatMessages');
+                if (!input || !container) return;
+                const question = input.value.trim();
+                if (!question) return;
+                container.innerHTML += `<div class="text-right mb-3"><span class="inline-block bg-purple-600 text-white rounded-lg px-4 py-2">${escapeHtml(question)}</span></div>`;
+                input.value = '';
+                container.scrollTop = container.scrollHeight;
+                container.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2"><i class="fas fa-spinner fa-spin"></i> AI mengetik...</span></div>`;
+                container.scrollTop = container.scrollHeight;
+                try {
+                    const prompt = `Jawab pertanyaan tentang "${state.selectedMatkul.nama}" (semester ${state.selectedMatkul.semester}): ${question}`;
+                    const answer = await callAI(prompt);
+                    const lastMsg = container.lastElementChild;
+                    if (lastMsg) lastMsg.remove();
+                    container.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-gray-200 rounded-lg px-4 py-2">${escapeHtml(answer)}</span></div>`;
+                    state.chatHistory.push({ question, answer });
+                    container.scrollTop = container.scrollHeight;
+                } catch (error) {
+                    const lastMsg = container.lastElementChild;
+                    if (lastMsg) lastMsg.remove();
+                    container.innerHTML += `<div class="text-left mb-3"><span class="inline-block bg-red-100 text-red-600 rounded-lg px-4 py-2">Error: ${error.message}</span></div>`;
+                }
+            };
+
+            window.absenHariIni = () => {
+                const now = new Date();
+                const tanggal = now.toLocaleDateString('id-ID');
+                const jam = now.toLocaleTimeString('id-ID');
+                state.absensi.push({ tanggal, jam });
+                saveState();
+                Swal.fire('Absen Berhasil!', `${tanggal} ${jam}`, 'success');
+                if (state.currentPage === 'dashboard') {
+                    const riwayatDiv = document.getElementById('riwayatAbsensi');
+                    if (riwayatDiv) {
+                        riwayatDiv.innerHTML = state.absensi.slice(-5).reverse().map(a => `<div>📅 ${a.tanggal} - ${a.jam}</div>`).join('');
+                    }
+                }
+            };
+
+            window.logout = () => {
+                localStorage.removeItem('pelajarin_state');
+                state = {
+                    currentPage: 'landing',
+                    user: null,
+                    jurusan: null,
+                    semesterAktif: 1,
+                    ipk: 0,
+                    selectedMatkul: null,
+                    materiCache: {},
+                    quizCache: {},
+                    chatHistory: [],
+                    absensi: []
+                };
+                render();
+            };
+
+            function escapeHtml(str) {
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                    return c;
+                });
+            }
+
+            loadState();
+            render();
+        })();
     </script>
 </body>
 </html>
