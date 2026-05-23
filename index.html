@@ -78,13 +78,14 @@
             const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/glm47flash';
             
             // STRICT CORE SYSTEM MANDATE - DIUBAH MENJADI ALAMI & TANPA FORMAT AI KAKU
-            const DOSEN_CORE_PROMPT = `KAMU ADALAH DOSEN WANITA MUDA BERNAMA "MBA DIKA" (UMUR 25 TAHUN). KAMU BERBICARA LANGSUNG SEBAGAI MBA DIKA DENGAN GAYA CHATTING NYATA, CASUAL NAMUN BERBOBOT AKADEMIK.
+            const DOSEN_CORE_PROMPT = `KAMU ADALAH DOSEN WANITA MUDA BERNAMA "MBA MBAK YOU" (UMUR 25 TAHUN). KAMU BERBICARA LANGSUNG SEBAGAI MBA MBAK YOU DENGAN GAYA CHATTING NYATA, CASUAL NAMUN BERBOBOT AKADEMIK.
 
 ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
 1. JANGAN PERNAH MENGGUNAKAN FORMAT MARKDOWN SEPERTI TAG LINK, "#", "##", ATAU "###". Tuliskan materi mengalir seperti struktur obrolan atau pesan panjang di aplikasi chat. Gunakan pemisah baris biasa saja.
-2. Gaya bahasa harus natural, mengalir, manis, menggunakan panggilan "Sayang" atau "Bimbinganku". Hilangkan kesan kaku ala bot AI. Jangan gunakan kalimat template seperti "Okay, berikut adalah...", "Sebagai AI...", langsung saja masuk ke topik obrolan.
-3. JELASKAN MATERI DENGAN MERUJUK PADA PARA AHLI ATAU TOKOH LITERATUR. Misal: "Menurut Kotler...", "Kalau merujuk ke teorinya Tanenbaum...", "Sesuai argumennya Prof. Subekti...".
-4. KETIKA KOREKSI KUIS (Baik PG atau Esai): Evaluasi jawaban mahasiswa dengan tegas namun manis. Sebutkan secara eksplisit "Jawaban benar adalah X karena..." atau jabarkan letak kesalahan argumen mereka secara ilmiah serta berikan alasan pembenaran literatur empirisnya secara langsung.`;
+2. JANGAN PERNAH MENULISKAN ANALISIS INTERNAL, LANGKAH BERPIKIR, ATAU "CHAIN OF THOUGHT" (seperti: "First, let me break down...", "Okay, so I need to handle...", atau "The user provided...") ke dalam teks respons. Langsung berikan jawaban dalam karakter!
+3. Gaya bahasa harus natural, mengalir, manis, menggunakan panggilan "Sayang" atau "Bimbinganku". Hilangkan kesan kaku ala bot AI. Jangan gunakan kalimat template seperti "Okay, berikut adalah...", "Sebagai AI...", langsung saja masuk ke topik obrolan.
+4. JELASKAN MATERI DENGAN MERUJUK PADA PARA AHLI ATAU TOKOH LITERATUR. Misal: "Menurut Kotler...", "Kalau merujuk ke teorinya Tanenbaum...", "Sesuai argumennya Prof. Subekti...".
+5. KETIKA KOREKSI KUIS (Baik PG atau Esai): Evaluasi jawaban mahasiswa dengan tegas namun manis. Sebutkan secara eksplisit "Jawaban benar adalah X karena..." atau jabarkan letak kesalahan argumen mereka secara ilmiah serta berikan alasan pembenaran literatur empirisnya secara langsung.`;
 
             // SYLLABUS KAMPUS INTERNAL DATABASE
             const AKADEMIK_PRODI_DATA = [
@@ -208,7 +209,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                     } else if (responseJson.text) {
                         outputString = String(responseJson.text);
                     } else {
-                        throw new Error("Koneksi pikiran Mba Dika terganggu!");
+                        throw new Error("Koneksi pikiran Mba Mbak You terganggu!");
                     }
                     
                     return cleanAndParseResponse(outputString);
@@ -327,7 +328,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                 Swal.fire({
                     icon: 'success',
                     title: 'Presensi Disimpan!',
-                    text: 'Mba Dika sudah mencatat kehadiranmu hari ini.',
+                    text: 'Mba Mbak You sudah mencatat kehadiranmu hari ini.',
                     confirmButtonColor: '#f43f5e'
                 });
             };
@@ -385,7 +386,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                 // DYNAMIC SYSTEM GENERATED TOPIC ENCODING WITHOUT SPECIAL CHARACTERS
                 const searchKeyword = encodeURIComponent(contextMatkul);
                 
-                const corePromptRequest = `Berikan materi pokok perkuliahan S1 komprehensif untuk kelas "${contextMatkul}" Semester ${appState.semesterAktif}. Kamu adalah Mba Dika, jelaskan isi modul ini secara naratif mengalir alami tanpa tanda pagar numerik ataupun poin markdown kaku. Wajib sertakan kutipan referensi nama para ahli terkemuka dunia/Indonesia yang relevan dengan topik ini. Berikan skema bagan alur logika visual dengan diagram teks/ASCII di dalam tag <pre class="peta-visual-box">.`;
+                const corePromptRequest = `Berikan materi pokok perkuliahan S1 komprehensif untuk kelas "${contextMatkul}" Semester ${appState.semesterAktif}. Kamu adalah Mba Mbak You, jelaskan isi modul ini secara naratif mengalir alami tanpa tanda pagar numerik ataupun poin markdown kaku. Wajib sertakan kutipan referensi nama para ahli terkemuka dunia/Indonesia yang relevan dengan topik ini. Berikan skema bagan alur logika visual dengan diagram teks/ASCII di dalam tag <pre class="peta-visual-box">.`;
 
                 const neuralNetworkResponse = await contactAiNeuralEngine(corePromptRequest);
                 sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
@@ -434,7 +435,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                 autoScrollTerminalTimeline();
             };
 
-            window.triggerInitiateKuisWorkflow = async () => {
+            window.triggerAppKuisWorkflow = async () => {
                 const contextMatkul = appState.selectedMatkul.nama;
                 const sessionContext = appState.classroomSessions[contextMatkul];
 
@@ -463,9 +464,9 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
 
                 let promptInstruction = "";
                 if (determinatorType === 'pg') {
-                    promptInstruction = `Kamu adalah Mba Dika, berikan Soal Kuis Nomor ${sessionContext.kuisStep} berjenis Pilihan Ganda (A, B, C, D) seputar materi perkuliahan "${activeMatkulName}". Tulis langsung soalnya dengan bahasa santai natural seolah sedang mengirim chat kuis tanpa embel-embel judul formal sistem.`;
+                    promptInstruction = `Kamu adalah Mba Mbak You, berikan Soal Kuis Nomor ${sessionContext.kuisStep} berjenis Pilihan Ganda (A, B, C, D) seputar materi perkuliahan "${activeMatkulName}". Tulis langsung soalnya dengan bahasa santai natural seolah sedang mengirim chat kuis tanpa embel-embel judul formal sistem.`;
                 } else {
-                    promptInstruction = `Kamu adalah Mba Dika, berikan Soal Kuis Nomor ${sessionContext.kuisStep} berjenis Esai Analisis Kasus Industri untuk mata kuliah "${activeMatkulName}". Gunakan bahasa obrolan dosen yang luwes namun menuntut analisis tajam mahasiswa.`;
+                    promptInstruction = `Kamu adalah Mba Mbak You, berikan Soal Kuis Nomor ${sessionContext.kuisStep} berjenis Esai Analisis Kasus Industri untuk mata kuliah "${activeMatkulName}". Gunakan bahasa obrolan dosen yang luwes namun menuntut analisis tajam mahasiswa.`;
                 }
 
                 const responseFromNeural = await contactAiNeuralEngine(promptInstruction);
@@ -548,7 +549,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                 render();
                 autoScrollTerminalTimeline();
 
-                const generalChatPromptCompiled = `Kamu adalah Mba Dika. Jawab langsung keluhan/pertanyaan bimbingan materi akademis dari mahasiswa bernama "${appState.user.nama}" ini: "${processedUserText}". Gunakan bahasa chat mengalir yang natural, manis, hindari penanda tanda pagar kaku AI, masukkan pendapat ahli bila relevan.`;
+                const generalChatPromptCompiled = `Kamu adalah Mba Mbak You. Jawab langsung keluhan/pertanyaan bimbingan materi akademis dari mahasiswa bernama "${appState.user.nama}" ini: "${processedUserText}". Gunakan bahasa chat mengalir yang natural, manis, hindari penanda tanda pagar kaku AI, masukkan pendapat ahli bila relevan.`;
 
                 const engineOutputResponse = await contactAiNeuralEngine(generalChatPromptCompiled);
                 sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
@@ -572,7 +573,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                 render();
                 autoScrollTerminalTimeline();
 
-                const evaluationPromptCompiled = `Kamu adalah Mba Dika. Berikan penilaian korektif yang sangat detail untuk jawaban mahasiswa berikut: "${userSubmittedPayload}" pada soal nomor ${sessionContext.kuisStep} mata kuliah "${activeMatkulName}". Kamu WAJIB menerangkan secara jelas jawaban mana yang benar, mengapa jawaban tersebut benar, serta kenapa jawaban salahnya kurang tepat berdasarkan rujukan teori ilmiah yang valid. Kemas penilaian ini dalam bentuk bahasa chat yang santai namun tegas.`;
+                const evaluationPromptCompiled = `Kamu adalah Mba Mbak You. Berikan penilaian korektif yang sangat detail untuk jawaban mahasiswa berikut: "${userSubmittedPayload}" pada soal nomor ${sessionContext.kuisStep} mata kuliah "${activeMatkulName}". Kamu WAJIB menerangkan secara jelas jawaban mana yang benar, mengapa jawaban tersebut benar, serta kenapa jawaban salahnya kurang tepat berdasarkan rujukan teori ilmiah yang valid. Kemas penilaian ini dalam bentuk bahasa chat yang santai namun tegas.`;
 
                 const gradingFeedbackResponse = await contactAiNeuralEngine(evaluationPromptCompiled);
                 sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
@@ -625,7 +626,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                                 <div class="text-xs uppercase font-black tracking-widest text-rose-100">Laporan Hasil Akhir Evaluasi</div>
                                 <div class="text-4xl font-black my-1">${scoreYield} / 100</div>
                                 <div class="text-xs bg-black/20 py-1 px-3 rounded-full inline-block">Indeks IPK Akumulatif: ${appState.ipk.toFixed(2)}</div>
-                               </div><br>Mba Dika: "Sesi kuis kita hari ini selesai ya sayang. Nilai akhir kamu ${scoreYield}. Progres SKS kamu di dasbor portal kampus sudah otomatis aku perbarui ya!"`,
+                               </div><br>Mba Mbak You: "Sesi kuis kita hari ini selesai ya sayang. Nilai akhir kamu ${scoreYield}. Progres SKS kamu di dasbor portal kampus sudah otomatis aku perbarui ya!"`,
                         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     });
 
@@ -693,7 +694,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                             <span class="w-2 h-2 rounded-full bg-rose-200 animate-ping"></span> Sistem Pendidikan Interaktif Terbuka
                         </div>
                         <h1 class="text-4xl sm:text-6xl font-black mb-6 tracking-tight leading-none">Ubah Pengalaman Kuliah S1 <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-white">Dengan Modul Progresif AI</span></h1>
-                        <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto font-medium mb-10 leading-relaxed">Mulai perkuliahan mandiri kamu secara realistis dari 0 SKS. Kumpulkan pemahaman modul bersama Mba Dika (Dosen AI Pengampu S1 Anda).</p>
+                        <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto font-medium mb-10 leading-relaxed">Mulai perkuliahan mandiri kamu secara realistis dari 0 SKS. Kumpulkan pemahaman modul bersama Mba Mbak You (Dosen AI Pengampu S1 Anda).</p>
                         <button onclick="window.launchRegistrationModal()" class="bg-white text-rose-900 font-black text-base px-8 py-4 rounded-xl shadow-2xl hover:bg-slate-50 transform hover:-translate-y-0.5 transition duration-150"><i class="fas fa-id-card mr-2"></i> Buat KTM Mahasiswa Baru Sekarang</button>
                     </div>
                 </div>
@@ -845,7 +846,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                             <button onclick="window.exitClassroomTerminalToDashboard()" class="hover:bg-rose-500/10 w-9 h-9 rounded-full flex items-center justify-center text-rose-500 transition"><i class="fas fa-arrow-left text-base"></i></button>
                             <div>
                                 <h2 class="font-black text-sm sm:text-base leading-tight tracking-tight">${activeMatkulName}</h2>
-                                <p class="text-[11px] text-rose-500 font-bold flex items-center gap-1"><i class="fas fa-circle text-[7px] text-green-400 animate-pulse"></i> Terminal Eksklusif Mba Dika</p>
+                                <p class="text-[11px] text-rose-500 font-bold flex items-center gap-1"><i class="fas fa-circle text-[7px] text-green-400 animate-pulse"></i> Terminal Eksklusif Mba Mbak You</p>
                             </div>
                         </div>
                         <div class="text-xs font-bold px-3 py-1.5 rounded-lg bg-chat-area border card-border uppercase text-rose-400">
@@ -872,7 +873,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                                         <div class="flex justify-start msg-entry" id="${bubbleItem.id}">
                                             <div class="bg-surface text-sm rounded-2xl rounded-tl-none px-4 py-3 border card-border shadow-sm flex items-center gap-3">
                                                 <div class="custom-spinner"></div>
-                                                <div class="text-xs font-semibold opacity-70 italic text-rose-400">Mba Dika sedang mengetik penjelasan...</div>
+                                                <div class="text-xs font-semibold opacity-70 italic text-rose-400">Mba Mbak You sedang mengetik penjelasan...</div>
                                             </div>
                                         </div>
                                         `;
@@ -882,7 +883,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                                     <div class="flex justify-start msg-entry">
                                         <div class="bg-surface rounded-2xl rounded-tl-none px-4 py-4 border card-border shadow-sm max-w-[92%] sm:max-w-[85%]">
                                             <div class="text-xs font-black text-rose-500 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                                <i class="fas fa-user-shield"></i> Mba Dika <span class="bg-rose-500/10 text-[9px] text-rose-400 px-2 py-0.5 rounded-full font-black border border-rose-500/20">Dosen Pengampu S1</span>
+                                                <i class="fas fa-user-shield"></i> Mba Mbak You <span class="bg-rose-500/10 text-[9px] text-rose-400 px-2 py-0.5 rounded-full font-black border border-rose-500/20">Dosen Pengampu S1</span>
                                             </div>
                                             <div class="text-sm sm:text-base leading-relaxed opacity-95 text-justify whitespace-normal">${bubbleItem.text}</div>
                                             <span class="block text-[9px] opacity-40 text-left mt-2 font-bold">${bubbleItem.timestamp}</span>
@@ -900,7 +901,7 @@ ATURAN GAYA BICARA & FORMAT (SANGAT KETAT):
                                 <button onclick="window.triggerGenerateModulMateriWorkflow()" class="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
                                     <i class="fas fa-book-open"></i> Ambil Modul Sesi Ini
                                 </button>
-                                <button onclick="window.triggerInitiateKuisWorkflow()" class="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
+                                <button onclick="window.triggerAppKuisWorkflow()" class="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
                                     <i class="fas fa-star text-xs"></i> Uji Kompetensi Kuis
                                 </button>
                             </div>
