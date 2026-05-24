@@ -74,6 +74,9 @@
         
         .peta-visual-box { background: rgba(0, 0, 0, 0.04); border: 1px dashed #cbd5e1; border-radius: 10px; padding: 16px; margin: 1.25rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; overflow-x: auto; line-height: 1.4; display: block; width: 100%; }
         .theme-manly .peta-visual-box { background: rgba(0,0,0,0.3); color: #38bdf8; border-color: #334155; }
+
+        .voice-pulse { animation: voiceWave 1.2s ease-in-out infinite; }
+        @keyframes voiceWave { 0%, 100% { transform: scale(1); background-color: #ef4444; } 50% { transform: scale(1.15); background-color: #b91c1c; } }
     `;
     headNode.appendChild(coreStyleNode);
 
@@ -95,7 +98,7 @@
 
 ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
 1. MATAKULIAH YANG DIKAJI: Saat ini kamu sedang berada di dalam ruang kelas perkuliahan mata kuliah [MATKUL_AKTIF]. Kamu DILARANG KERAS membahas topik di luar mata kuliah [MATKUL_AKTIF]. Ingat, materi yang harus dibahas detik ini HANYA seputar [MATKUL_AKTIF]! Lupakan mata kuliah atau sesi diskusi di kelas lainnya. Jangan pernah memberikan analogi atau jawaban yang bergeser ke topik lain. Jaga pembahasan tetap mengalir linier dan runtut di dalam parameter keilmuan [MATKUL_AKTIF].
-2. WAJIB GROUNDING AWALAN DATA: Setiap kali menjelaskan topik atau menjawab pertanyaan, kamu harus memulainya dari akar fondasi dasarnya terlebih dahulu (definisi awal, filosofi esensi materi, serta urgensi bidang ilmu tersebut). Jangan pernah melompat ke rumus rumit atau instruksi tingkat lanjut sebelum landasan dasarnya clear!
+2. WAJIB GROUNDING AWALAN DATA: Setiap kali menjelaskan topik atau menjawab pertanyaan, kamu harus memulainya dari akar fondasi dasarnya terlebih dahulu (definisi awal, filosofi esensi materi, serta urgensi bidang ilmu tersebut). Jangan pernah melihat ke rumus rumit atau instruksi tingkat lanjut sebelum landasan dasarnya clear!
 3. DISIPLIN PARAMETER: Jaga agar mahasiswa tahu batasan materi harinya sudah sampai mana. Di akhir penjelasan materi utama, wajib buatkan peta posisi materi secara tekstual sederhana memakai tanda panah di dalam tag <pre class="peta-visual-box"> (contoh: Konsep Dasar -> Ruang Lingkup -> Aplikasi Kasus).
 4. JANGAN PERNAH MENGGUNAKAN FORMAT MARKDOWN SEPERTI TAG LINK, "#", "##", ATAU "###". Tuliskan materi mengalir seperti struktur obrolan atau pesan panjang di aplikasi chat. Gunakan pemisah baris biasa saja.
 5. JANGAN PERNAH MENULISKAN ANALISIS INTERNAL ATAU "CHAIN OF THOUGHT" (seperti: "First, let me break down...", "Okay, so I need to handle...") ke dalam teks respons. Langsung berikan jawaban dalam karakter persona!
@@ -148,6 +151,96 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         classroomSessions: {},
         presensiHistory: []
     };
+
+    // INTERNAL GIPHY & STICKER FALLBACK DATABASE
+    const EMOTION_STICKERS = {
+        welcome: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXN6ZnN5dmRndm93eG05M295Mms0Zm94ZnAydDJ4b3hndXFwYmw1diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/1gSTp783f9m6R6R8M3/giphy.gif",
+        learning: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHA1b2t0NWFndmkyN3V3bHlzYzA3NDg3Mms0M3V0N3BvdnBwOHdmdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jErnyb6kX9bWM/giphy.gif",
+        success: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHI3M280eXNnd3B3NmZ3dzgybXU0Z3JvMnR5NmRmaHdqenBhdWdyYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/ccXWfN8bE1MZy/giphy.gif",
+        error: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHAwM3ZzOHMzdnZ6aXJndXpwOGo3ZTF6dnBhNXNpeTN4ZHp3bjV5ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/EvYH7dbpxClIs78qnB/giphy.gif"
+    };
+
+    // AUDIO MANAGEMENT UTILITIES (NATIVE SPEECH ENGINES)
+    let speechSynthesizerInstance = window.speechSynthesis;
+    let speechUtteranceInstance = null;
+    let speechRecognitionEngine = null;
+    let isVoiceRecordingActive = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const RecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
+        speechRecognitionEngine = new RecognitionConstructor();
+        speechRecognitionEngine.continuous = false;
+        speechRecognitionEngine.lang = 'id-ID';
+        speechRecognitionEngine.interimResults = false;
+    }
+
+    window.readAloudMbakYouSpeech = (targetTextToSpeak) => {
+        if (!speechSynthesizerInstance) return Swal.fire('Akses Gagal', 'Browser kamu tidak mendukung Text-to-Speech, sayang.', 'error');
+        
+        speechSynthesizerInstance.cancel(); // Stop any ongoing speech
+        
+        // Strip HTML nodes to extract raw text content
+        const temporaryTextBufferNode = document.createElement('div');
+        temporaryTextBufferNode.innerHTML = targetTextToSpeak;
+        let cleanPlainSpeechString = temporaryTextBufferNode.textContent || temporaryTextBufferNode.innerText || "";
+        
+        // Remove code maps or technical logs from the audio read pipeline
+        cleanPlainSpeechString = cleanPlainSpeechString.replace(/<pre class="peta-visual-box">[\s\S]*?<\/pre>/g, '');
+        
+        speechUtteranceInstance = new SpeechSynthesisUtterance(cleanPlainSpeechString);
+        speechUtteranceInstance.lang = 'id-ID';
+        speechUtteranceInstance.rate = 1.0;
+        speechUtteranceInstance.pitch = 1.2; // Female-like tone tuning
+        
+        speechSynthesizerInstance.speak(speechUtteranceInstance);
+    };
+
+    window.toggleSpeechToTextRecordingPipeline = () => {
+        if (!speechRecognitionEngine) {
+            return Swal.fire('Akses Gagal', 'Browser kamu tidak mendukung voice recognition speech-to-text, sayang. Gunakan Chrome atau Edge ya!', 'error');
+        }
+
+        const interfaceMicButtonNode = document.getElementById('voiceRecognitionTriggerNode');
+        
+        if (isVoiceRecordingActive) {
+            speechRecognitionEngine.stop();
+            return;
+        }
+
+        isVoiceRecordingActive = true;
+        if (interfaceMicButtonNode) {
+            interfaceMicButtonNode.classList.add('voice-pulse');
+            interfaceMicButtonNode.innerHTML = `<i class="fas fa-stop text-white text-xs"></i>`;
+        }
+
+        speechRecognitionEngine.start();
+
+        speechRecognitionEngine.onresult = (recognitionEvent) => {
+            const vocalTranscribedTextResult = recognitionEvent.results[0][0].transcript;
+            const appTextInputBoxNode = document.getElementById('terminalCoreInputField');
+            if (appTextInputBoxNode && vocalTranscribedTextResult) {
+                appTextInputBoxNode.value = vocalTranscribedTextResult;
+            }
+        };
+
+        speechRecognitionEngine.onerror = (recognitionErrorEvent) => {
+            console.error(recognitionErrorEvent);
+            terminateVoiceRecordingInterfaceState();
+        };
+
+        speechRecognitionEngine.onend = () => {
+            terminateVoiceRecordingInterfaceState();
+        };
+    };
+
+    function terminateVoiceRecordingInterfaceState() {
+        isVoiceRecordingActive = false;
+        const interfaceMicButtonNode = document.getElementById('voiceRecognitionTriggerNode');
+        if (interfaceMicButtonNode) {
+            interfaceMicButtonNode.classList.remove('voice-pulse');
+            interfaceMicButtonNode.innerHTML = `<i class="fas fa-microphone text-sm"></i>`;
+        }
+    }
 
     // CONTENT RENDER CLEANER & PARSER
     function cleanAndParseResponse(rawText) {
@@ -370,7 +463,7 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
                         id: 'init-core-msg',
                         sender: 'dosen',
                         type: 'text',
-                        text: `Halo sayang, selamat datang di kelas ${targetMatkulName}. Ini ruang diskusi eksklusif kita berdua ya. Yuk langsung klik tombol "Ambil Modul Sesi Ini" di menu bawah biar aku jabarin materi kuliah kita hari ini lengkap secara runut dari awalan dasarnya, didukung referensi ahli, biar parameter pemahaman kamu jelas dan gak ke mana-mana. Semangat belajar bimbinganku!`,
+                        text: `<div class="mb-2"><img src="${EMOTION_STICKERS.welcome}" class="w-16 h-16 object-contain" alt="Welcome Sticker"></div>Halo sayang, selamat datang di kelas ${targetMatkulName}. Ini ruang diskusi eksklusif kita berdua ya. Yuk langsung klik tombol "Ambil Modul Sesi Ini" di menu bawah biar aku jabarin materi kuliah kita hari ini lengkap secara runut dari awalan dasarnya, didukung referensi ahli, biar parameter pemahaman kamu jelas dan gak ke mana-mana. Semangat belajar bimbinganku!`,
                         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     }
                 ],
@@ -388,6 +481,7 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
     };
 
     window.exitClassroomTerminalToDashboard = () => {
+        if (speechSynthesizerInstance) speechSynthesizerInstance.cancel();
         appState.currentPage = 'dashboard';
         appState.selectedMatkul = null;
         render();
@@ -401,8 +495,14 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
             didOpen: () => {
                 Swal.showLoading();
                 setTimeout(() => {
-                    const dummyPdfContent = "%PDF-1.4 ... Content Simulation ...";
-                    const blobStorageBox = new Blob([dummyPdfContent], { type: 'application/pdf' });
+                    // SECURE BINARY GENERATION PREVENTS STORAGE CAPTURE FAILS
+                    const simulatedPdfRawString = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n178\n%%EOF";
+                    const dataBufferArray = new Uint8Array(simulatedPdfRawString.length);
+                    for (let i = 0; i < simulatedPdfRawString.length; i++) {
+                        dataBufferArray[i] = simulatedPdfRawString.charCodeAt(i);
+                    }
+                    
+                    const blobStorageBox = new Blob([dataBufferArray], { type: 'application/pdf' });
                     const secureObjectUrl = window.URL.createObjectURL(blobStorageBox);
                     
                     const downloadTriggerNode = document.createElement('a');
@@ -440,6 +540,7 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
 
         const cleanKeyword = contextMatkul.replace(/[^a-zA-Z0-9 S]/g, "");
         
+        // Dynamic search embedding parameters to prevent raw asset blockades
         const youtubeEmbedUrl = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent("Materi Kuliah " + cleanKeyword)}`;
         const youtubeExternalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent("Materi Kuliah S1 " + cleanKeyword)}`;
 
@@ -474,12 +575,13 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
 
                     <div class="mb-4 p-4 bg-slate-950 text-white rounded-xl overflow-hidden shadow-xl border border-slate-800">
                         <span class="block text-xs text-rose-400 font-bold mb-2"><i class="fab fa-youtube"></i> Video Referensi Pembelajaran Visual: ${contextMatkul}</span>
-                        <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-black mb-2">
-                            <iframe class="absolute top-0 left-0 w-full h-full shadow-inner" src="${youtubeEmbedUrl}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-black mb-2 shadow-inner">
+                            <iframe class="absolute top-0 left-0 w-full h-full" src="${youtubeEmbedUrl}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         </div>
                         <a href="${youtubeExternalUrl}" target="_blank" class="block text-center text-[11px] font-bold text-white bg-red-600 hover:bg-red-700 py-2 rounded-lg transition"><i class="fas fa-external-link-alt mr-1"></i> Video Tidak Muncul? Klik Untuk Cari Rujukan Alternatif Di YouTube</a>
                     </div>
 
+                    <div class="mb-2"><img src="${EMOTION_STICKERS.learning}" class="w-14 h-14 object-contain" alt="Study Sticker"></div>
                     <div class="text-sm space-y-2 leading-relaxed text-justify whitespace-pre-line">${neuralNetworkResponse}</div>
                     
                     <div class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
@@ -727,7 +829,8 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
                         <i class="fas fa-award text-3xl text-yellow-300 mb-2 block"></i>
                         <div class="text-xs uppercase font-black tracking-widest text-rose-100">Laporan Hasil Akhir Evaluasi</div>
                         <div class="text-4xl font-black my-1">${scoreYield} / 100</div>
-                        <div class="text-xs bg-black/20 py-1 px-3 rounded-full inline-block">Indeks IPK Akumulatif: ${appState.ipk.toFixed(2)}</div>
+                        <div class="text-xs bg-black/20 py-1 px-3 rounded-full inline-block mb-3">Indeks IPK Akumulatif: ${appState.ipk.toFixed(2)}</div>
+                        <div class="mb-1 flex justify-center"><img src="${EMOTION_STICKERS.success}" class="w-16 h-16 object-contain" alt="Success Sticker"></div>
                        </div><br> Mbak You: "Sesi kuis kita hari ini selesai ya sayang. Nilai akhir kamu ${scoreYield}. Progres SKS kamu di dasbor portal kampus sudah otomatis aku perbarui ya!"`,
                 timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
             });
@@ -971,73 +1074,79 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
                             `;
                         } else {
                             if (bubbleItem.isTyping) {
-                                        return `
-                                        <div class="flex justify-start msg-entry" id="${bubbleItem.id}">
-                                            <div class="bg-surface text-sm rounded-2xl rounded-tl-none px-4 py-3 border card-border shadow-sm flex items-center gap-3">
-                                                <div class="custom-spinner"></div>
-                                                <div class="text-xs font-semibold opacity-70 italic text-rose-400">Mbak You sedang merangkum keilmuan...</div>
-                                            </div>
-                                        </div>
-                                        `;
-                                    }
-
-                                    return `
-                                    <div class="flex justify-start msg-entry">
-                                        <div class="bg-surface rounded-2xl rounded-tl-none px-4 py-4 border card-border shadow-sm max-w-[92%] sm:max-w-[85%]">
-                                            <div class="text-xs font-black text-rose-500 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                                <i class="fas fa-user-shield"></i> Mbak You <span class="bg-rose-500/10 text-[9px] text-rose-400 px-2 py-0.5 rounded-full font-black border border-rose-500/20">Dosen Pengampu S1</span>
-                                            </div>
-                                            <div class="text-sm sm:text-base leading-relaxed opacity-95 text-justify whitespace-normal">${bubbleItem.text}</div>
-                                            <span class="block text-[9px] opacity-40 text-left mt-2 font-bold">${bubbleItem.timestamp}</span>
-                                        </div>
+                                return `
+                                <div class="flex justify-start msg-entry" id="${bubbleItem.id}">
+                                    <div class="bg-surface text-sm rounded-2xl rounded-tl-none px-4 py-3 border card-border shadow-sm flex items-center gap-3">
+                                        <div class="custom-spinner"></div>
+                                        <div class="text-xs font-semibold opacity-70 italic text-rose-400">Mbak You sedang merangkum keilmuan...</div>
                                     </div>
-                                    `;
-                                }
-                            }).join('')}
-                        </div>
+                                </div>
+                                `;
+                            }
+
+                            // Inject dynamic operational action fields (Sound Reader Buttons) inside the card body
+                            return `
+                            <div class="flex justify-start msg-entry">
+                                <div class="bg-surface rounded-2xl rounded-tl-none px-4 py-4 border card-border shadow-sm max-w-[92%] sm:max-w-[85%] w-full">
+                                    <div class="text-xs font-black text-rose-500 uppercase tracking-widest mb-2 flex justify-between items-center">
+                                        <span class="flex items-center gap-1"><i class="fas fa-user-shield"></i> Mbak You <span class="bg-rose-500/10 text-[9px] text-rose-400 px-2 py-0.5 rounded-full font-black border border-rose-500/20">Dosen Pengampu S1</span></span>
+                                        <button onclick="window.readAloudMbakYouSpeech(\`${bubbleItem.text.replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, ' ')}\`)" class="text-rose-500 hover:text-white hover:bg-rose-500 px-2 py-1 rounded-md border border-rose-200 text-[10px] font-extrabold flex items-center gap-1 transition"><i class="fas fa-volume-up"></i> Dengarkan</button>
+                                    </div>
+                                    <div class="text-sm sm:text-base leading-relaxed opacity-95 text-justify whitespace-normal">${bubbleItem.text}</div>
+                                    <span class="block text-[9px] opacity-40 text-left mt-2 font-bold">${bubbleItem.timestamp}</span>
+                                </div>
+                            </div>
+                            `;
+                        }
+                    }).join('')}
+                </div>
+            </div>
+
+            <div class="bg-surface border-t card-border p-3 sticky bottom-0 z-40 shadow-xl">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
+                        <button onclick="window.triggerGenerateModulMateriWorkflow()" class="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
+                            <i class="fas fa-book-open"></i> Ambil Modul Sesi Ini
+                        </button>
+                        <button onclick="window.triggerAppKuisWorkflow()" class="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
+                            <i class="fas fa-star text-xs"></i> Uji Kompetensi Kuis
+                        </button>
                     </div>
 
-                    <div class="bg-surface border-t card-border p-3 sticky bottom-0 z-40 shadow-xl">
-                        <div class="max-w-4xl mx-auto">
-                            <div class="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
-                                <button onclick="window.triggerGenerateModulMateriWorkflow()" class="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
-                                    <i class="fas fa-book-open"></i> Ambil Modul Sesi Ini
-                                </button>
-                                <button onclick="window.triggerAppKuisWorkflow()" class="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
-                                    <i class="fas fa-star text-xs"></i> Uji Kompetensi Kuis
-                                </button>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                <div class="flex-1 bg-chat-area rounded-xl px-4 py-3 flex items-center border card-border gap-2">
-                                    <i class="fas fa-terminal text-rose-500 text-sm opacity-40"></i>
-                                    <input type="text" id="terminalCoreInputField" onkeydown="if(event.key === 'Enter') window.processUserTextMessagingInput()" class="w-full text-sm sm:text-base bg-transparent focus:outline-none font-medium placeholder-slate-400" placeholder="Ketik jawaban esai atau ajukan pertanyaan diskusi...">
-                                </div>
-                                <button onclick="window.processUserTextMessagingInput()" class="bg-rose-600 hover:bg-rose-700 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition shrink-0">
-                                    <i class="fas fa-paper-plane text-sm"></i>
-                                </button>
-                            </div>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 bg-chat-area rounded-xl px-4 py-3 flex items-center border card-border gap-2">
+                            <i class="fas fa-terminal text-rose-500 text-sm opacity-40"></i>
+                            <input type="text" id="terminalCoreInputField" onkeydown="if(event.key === 'Enter') window.processUserTextMessagingInput()" class="w-full text-sm sm:text-base bg-transparent focus:outline-none font-medium placeholder-slate-400" placeholder="Ketik jawaban esai atau gunakan tombol mic untuk berbicara...">
+                            
+                            <button id="voiceRecognitionTriggerNode" onclick="window.toggleSpeechToTextRecordingPipeline()" class="w-8 h-8 rounded-lg bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-sm transition shrink-0" title="Bicara dengan Ucapan">
+                                <i class="fas fa-microphone text-sm"></i>
+                            </button>
                         </div>
+                        <button onclick="window.processUserTextMessagingInput()" class="bg-rose-600 hover:bg-rose-700 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition shrink-0">
+                            <i class="fas fa-paper-plane text-sm"></i>
+                        </button>
                     </div>
                 </div>
-                `;
-            }
+            </div>
+        </div>
+        `;
+    }
 
-            function render() {
-                const appDomRootNode = document.getElementById('app');
-                if (!appDomRootNode) return;
+    function render() {
+        const appDomRootNode = document.getElementById('app');
+        if (!appDomRootNode) return;
 
-                if (appState.currentPage === 'landing') {
-                    appDomRootNode.innerHTML = generateLandingPageHTMLView();
-                } else if (appState.currentPage === 'dashboard') {
-                    appDomRootNode.innerHTML = generateDashboardPageHTMLView();
-                } else if (appState.currentPage === 'classroom') {
-                    appDomRootNode.innerHTML = generateClassroomTerminalHTMLView();
-                }
-            }
+        if (appState.currentPage === 'landing') {
+            appDomRootNode.innerHTML = generateLandingPageHTMLView();
+        } else if (appState.currentPage === 'dashboard') {
+            appDomRootNode.innerHTML = generateDashboardPageHTMLView();
+        } else if (appState.currentPage === 'classroom') {
+            appDomRootNode.innerHTML = generateClassroomTerminalHTMLView();
+        }
+    }
 
-            // BOOTSTRAP INITIALIZATION PIPELINE RUNNER
-            loadApplicationStateFromDisk();
-            render();
-            autoScrollTerminalTimeline();
-        })();
+    // BOOTSTRAP INITIALIZATION PIPELINE RUNNER
+    loadApplicationStateFromDisk();
+    render();
+    autoScrollTerminalTimeline();
+})();
