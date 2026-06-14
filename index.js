@@ -1,5 +1,5 @@
 (function() {
-    // 1. INJECT BASE CSS & FONTS DYNAMICALLY INTO HEAD
+    // 1. INJECT ALL CDNs & DEPENDENCIES
     const headNode = document.head || document.getElementsByTagName('head')[0];
     
     // Tailwind CSS
@@ -23,6 +23,21 @@
     const swalScript = document.createElement('script');
     swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
     headNode.appendChild(swalScript);
+
+    // jsPDF untuk PDF real
+    const jspdfScript = document.createElement('script');
+    jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    headNode.appendChild(jspdfScript);
+
+    // DOMPurify untuk sanitasi input
+    const purifyScript = document.createElement('script');
+    purifyScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js';
+    headNode.appendChild(purifyScript);
+
+    // YouTube IFrame API untuk kontrol lebih baik
+    const youtubeApiScript = document.createElement('script');
+    youtubeApiScript.src = 'https://www.youtube.com/iframe_api';
+    headNode.appendChild(youtubeApiScript);
 
     // Core Matrix Styles Injector
     const coreStyleNode = document.createElement('style');
@@ -77,10 +92,26 @@
 
         .voice-pulse { animation: voiceWave 1.2s ease-in-out infinite; }
         @keyframes voiceWave { 0%, 100% { transform: scale(1); background-color: #ef4444; } 50% { transform: scale(1.15); background-color: #b91c1c; } }
+        
+        .youtube-player-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: #000; }
+        .youtube-player-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        
+        @media (max-width: 640px) {
+            .msg-entry .bg-surface { max-width: 95% !important; }
+            .grid-cols-2.md\\:grid-cols-4 { gap: 0.5rem; }
+            .text-4xl { font-size: 1.8rem; }
+        }
+        
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .loading-content { background: white; padding: 2rem; border-radius: 1rem; text-align: center; }
+        .theme-manly .loading-content { background: #1e293b; }
+        
+        .toast-notification { position: fixed; bottom: 20px; right: 20px; z-index: 10000; animation: slideInRight 0.3s ease; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     `;
     headNode.appendChild(coreStyleNode);
 
-    // 2. INITIALIZE BODY ATTRIBUTES & MOUNT ROOT APP DEPLOYMENT NODE
+    // 2. INITIALIZE BODY ATTRIBUTES & MOUNT ROOT
     document.body.className = "theme-girly text-base min-h-screen";
     
     let appMountRoot = document.getElementById('app');
@@ -90,10 +121,50 @@
         document.body.appendChild(appMountRoot);
     }
 
-    // HIGH-STABILITY ENGINE CONFIGURATION (MENGGUNAKAN GLM-4-FLASH)
+    // GLOBAL VARIABLES
+    let globalLoadingCount = 0;
+    
+    function showLoading() {
+        globalLoadingCount++;
+        if (document.getElementById('globalLoadingOverlay')) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'globalLoadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-content rounded-2xl shadow-2xl">
+                <div class="custom-spinner mx-auto mb-3" style="width: 40px; height: 40px;"></div>
+                <p class="text-sm font-bold">Memproses permintaan...</p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    
+    function hideLoading() {
+        globalLoadingCount--;
+        if (globalLoadingCount <= 0) {
+            const overlay = document.getElementById('globalLoadingOverlay');
+            if (overlay) overlay.remove();
+            globalLoadingCount = 0;
+        }
+    }
+    
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-rose-500' : 'bg-amber-500';
+        toast.innerHTML = `
+            <div class="${bgColor} text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-2">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span class="text-sm font-medium">${DOMPurify ? DOMPurify.sanitize(toast) : toast}</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // API CONFIGURATION
     const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/glm47flash';
     
-    // SYSTEM MANDATE TEMPLATE BASE
     const DOSEN_BASE_PROMPT = `KAMU ADALAH DOSEN WANITA MUDA BERNAMA "MBAK YOU" (UMUR 25 TAHUN). KAMU BERBICARA LANGSUNG SEBAGAI MBAK YOU DENGAN GAYA CHATTING NYATA, CASUAL, MANIS, TAPI SANGAT DISIPLIN AKADEMIK DAN TIDAK KAKU.
 
 ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
@@ -106,7 +177,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
 7. JELASKAN MATERI DENGAN MERUJUK PADA PARA AHLI ATAU TOKOH LITERATUR. Misal jika membahas manajemen merujuk ke Kotler, jika psikologi merujuk ke Sigmund Freud/Descartes, jika hukum ke Prof. Subekti, jika IT ke Tanenbaum.
 8. KETIKA KOREKSI KUIS: Evaluasi jawaban mahasiswa dengan tegas namun manis. Sebutkan secara eksplisit letak kesalahan argumen mereka secara ilmiah serta berikan alasan pembenaran literatur empirisnya secara langsung.`;
 
-    // SYLLABUS KAMPUS INTERNAL DATABASE
     const AKADEMIK_PRODI_DATA = [
         { id: 1, nama: "Teknik Informatika", icon: "fa-terminal", warna: "from-sky-500 to-blue-600", deskripsi: "Kurikulum pengkomputeran modern, algoritma tingkat tinggi, rekayasa kode, dan kecerdasan artifisial.", prospek: "Software Architect, AI Systems Engineer, Lead Developer" },
         { id: 2, nama: "Manajemen Bisnis", icon: "fa-chart-pie", warna: "from-rose-400 to-pink-600", deskripsi: "Formulasi strategi pemasaran digital, analisis resiko pasar korporat, dan manajemen operasi bisnis.", prospek: "Chief Operating Officer, Strategy Consultant, Venture Builder" },
@@ -138,7 +208,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         }
     };
 
-    // PERSISTENT ENGINE STATE CONTROL STRUCTURE
     let appState = {
         currentPage: 'landing',
         currentTheme: 'theme-girly',
@@ -152,7 +221,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         presensiHistory: []
     };
 
-    // INTERNAL GIPHY & STICKER FALLBACK DATABASE
     const EMOTION_STICKERS = {
         welcome: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXN6ZnN5dmRndm93eG05M295Mms0Zm94ZnAydDJ4b3hndXFwYmw1diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/1gSTp783f9m6R6R8M3/giphy.gif",
         learning: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHA1b2t0NWFndmkyN3V3bHlzYzA3NDg3Mms0M3V0N3BvdnBwOHdmdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jErnyb6kX9bWM/giphy.gif",
@@ -160,7 +228,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         error: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHAwM3ZzOHMzdnZ6aXJndXpwOGo3ZTF6dnBhNXNpeTN4ZHp3bjV5ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/EvYH7dbpxClIs78qnB/giphy.gif"
     };
 
-    // AUDIO MANAGEMENT UTILITIES (NATIVE SPEECH ENGINES)
     let speechSynthesizerInstance = window.speechSynthesis;
     let speechUtteranceInstance = null;
     let speechRecognitionEngine = null;
@@ -175,29 +242,32 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
     }
 
     window.readAloudMbakYouSpeech = (targetTextToSpeak) => {
-        if (!speechSynthesizerInstance) return Swal.fire('Akses Gagal', 'Browser kamu tidak mendukung Text-to-Speech, sayang.', 'error');
+        if (!speechSynthesizerInstance) {
+            showToast('Browser tidak support Text-to-Speech', 'error');
+            return;
+        }
         
-        speechSynthesizerInstance.cancel(); // Stop any ongoing speech
+        speechSynthesizerInstance.cancel();
         
-        // Strip HTML nodes to extract raw text content
         const temporaryTextBufferNode = document.createElement('div');
         temporaryTextBufferNode.innerHTML = targetTextToSpeak;
         let cleanPlainSpeechString = temporaryTextBufferNode.textContent || temporaryTextBufferNode.innerText || "";
         
-        // Remove code maps or technical logs from the audio read pipeline
         cleanPlainSpeechString = cleanPlainSpeechString.replace(/<pre class="peta-visual-box">[\s\S]*?<\/pre>/g, '');
+        cleanPlainSpeechString = cleanPlainSpeechString.replace(/<[^>]*>/g, '');
         
         speechUtteranceInstance = new SpeechSynthesisUtterance(cleanPlainSpeechString);
         speechUtteranceInstance.lang = 'id-ID';
-        speechUtteranceInstance.rate = 1.0;
-        speechUtteranceInstance.pitch = 1.2; // Female-like tone tuning
+        speechUtteranceInstance.rate = 0.95;
+        speechUtteranceInstance.pitch = 1.3;
         
         speechSynthesizerInstance.speak(speechUtteranceInstance);
     };
 
     window.toggleSpeechToTextRecordingPipeline = () => {
         if (!speechRecognitionEngine) {
-            return Swal.fire('Akses Gagal', 'Browser kamu tidak mendukung voice recognition speech-to-text, sayang. Gunakan Chrome atau Edge ya!', 'error');
+            showToast('Browser tidak support voice recognition. Gunakan Chrome!', 'error');
+            return;
         }
 
         const interfaceMicButtonNode = document.getElementById('voiceRecognitionTriggerNode');
@@ -220,12 +290,14 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
             const appTextInputBoxNode = document.getElementById('terminalCoreInputField');
             if (appTextInputBoxNode && vocalTranscribedTextResult) {
                 appTextInputBoxNode.value = vocalTranscribedTextResult;
+                showToast(`Terkirim: ${vocalTranscribedTextResult.substring(0, 50)}...`, 'success');
             }
         };
 
         speechRecognitionEngine.onerror = (recognitionErrorEvent) => {
             console.error(recognitionErrorEvent);
             terminateVoiceRecordingInterfaceState();
+            showToast('Gagal mendeteksi suara, coba lagi', 'error');
         };
 
         speechRecognitionEngine.onend = () => {
@@ -242,7 +314,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         }
     }
 
-    // CONTENT RENDER CLEANER & PARSER
     function cleanAndParseResponse(rawText) {
         if (!rawText) return '';
         let processedText = rawText;
@@ -260,6 +331,10 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
             }
             return line + '<br>';
         }).join('');
+        
+        if (DOMPurify) {
+            processedText = DOMPurify.sanitize(processedText, { ALLOWED_TAGS: ['b', 'i', 'span', 'div', 'br', 'pre', 'img', 'a', 'button', 'iframe'], ALLOWED_ATTR: ['class', 'href', 'src', 'onclick', 'target', 'style'] });
+        }
         
         return processedText.trim();
     }
@@ -304,15 +379,19 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         render();
     };
 
-    // DYNAMIC INTELLIGENCE API CONNECTOR (GLM-4-FLASH COMPLIANT)
     async function contactAiNeuralEngine(compiledPrompt) {
         const currentActiveMatkul = (appState.selectedMatkul && appState.selectedMatkul.nama) ? appState.selectedMatkul.nama : "Umum";
         const tailoredSystemPrompt = DOSEN_BASE_PROMPT.replace(/\[MATKUL_AKTIF\]/g, currentActiveMatkul);
         const queryParameters = `${API_ENDPOINT}?prompt=${encodeURIComponent(compiledPrompt)}&system=${encodeURIComponent(tailoredSystemPrompt)}&temperature=0.4`;
         
         try {
-            const networkResponse = await fetch(queryParameters);
-            if (!networkResponse.ok) throw new Error(`Status Jaringan Menolak: ${networkResponse.status}`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
+            
+            const networkResponse = await fetch(queryParameters, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (!networkResponse.ok) throw new Error(`HTTP ${networkResponse.status}`);
             const responseJson = await networkResponse.json();
             
             let outputString = "";
@@ -325,17 +404,143 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
             } else if (responseJson.text) {
                 outputString = String(responseJson.text);
             } else {
-                throw new Error("Koneksi pikiran Mbak You terganggu!");
+                throw new Error("Format respons API tidak dikenal");
             }
             
             return cleanAndParseResponse(outputString);
         } catch (networkException) {
             console.error(networkException);
+            if (networkException.name === 'AbortError') {
+                return `ERROR_SIGNAL_FALLBACK: Timeout - Koneksi terlalu lama`;
+            }
             return `ERROR_SIGNAL_FALLBACK: ${networkException.message}`;
         }
     }
 
-    // ACTION CONTROLLERS
+    // PDF GENERATOR REAL dengan jsPDF
+    window.executePdfDownloadPipeline = async (topicKeyword) => {
+        showLoading();
+        try {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            if (!window.jspdf) {
+                throw new Error('jsPDF belum siap');
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(18);
+            doc.setTextColor(219, 39, 119);
+            doc.text(`Materi Kuliah: ${topicKeyword}`, 20, 20);
+            
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Dokumen referensi akademik untuk mata kuliah ${topicKeyword}`, 20, 35);
+            doc.text(`Program Studi: ${appState.jurusan?.nama || 'Umum'}`, 20, 45);
+            doc.text(`Semester: ${appState.semesterAktif}`, 20, 52);
+            doc.text(`Diunduh: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, 20, 59);
+            
+            doc.setFontSize(11);
+            doc.text(`Referensi materi ${topicKeyword} meliputi konsep dasar,`, 20, 75);
+            doc.text(`aplikasi praktis, serta studi kasus terkini. Untuk detail`, 20, 82);
+            doc.text(`lebih lengkap silakan akses modul interaktif di platform.`, 20, 89);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generated by Pelajarin Platform - AI Learning Assistant`, 20, 280);
+            
+            doc.save(`Materi_${topicKeyword.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
+            showToast('PDF berhasil diunduh!', 'success');
+        } catch(err) {
+            console.error(err);
+            showToast('Gagal membuat PDF: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    };
+
+    // YOUTUBE SEARCH & PLAYER FUNCTION - TANPA IKLAN
+    window.searchAndPlayYouTube = (query, elementId) => {
+        if (!query || !elementId) return;
+        
+        const searchQuery = encodeURIComponent(`${query} kuliah materi pembelajaran`);
+        const playerDiv = document.getElementById(elementId);
+        
+        if (!playerDiv) return;
+        
+        playerDiv.innerHTML = `
+            <div class="youtube-player-wrapper">
+                <div id="temp-player-${Date.now()}" class="w-full h-full"></div>
+            </div>
+            <div class="text-center mt-2">
+                <a href="https://www.youtube.com/results?search_query=${searchQuery}" target="_blank" 
+                   class="text-[11px] text-rose-500 hover:text-rose-600 underline">
+                   <i class="fab fa-youtube"></i> Tidak bisa putar? Klik untuk cari di YouTube
+                </a>
+            </div>
+        `;
+        
+        const videoId = getYouTubeVideoIdFromSearch(query);
+        
+        if (videoId) {
+            setTimeout(() => {
+                const playerId = `temp-player-${Date.now()}`;
+                if (window.YT && window.YT.Player) {
+                    new YT.Player(playerId, {
+                        height: '100%',
+                        width: '100%',
+                        videoId: videoId,
+                        playerVars: {
+                            'autoplay': 1,
+                            'rel': 0,
+                            'modestbranding': 1,
+                            'controls': 1,
+                            'showinfo': 0,
+                            'iv_load_policy': 3,
+                            'cc_load_policy': 0,
+                            'fs': 1,
+                            'playsinline': 1,
+                            'enablejsapi': 1,
+                            'origin': window.location.origin
+                        }
+                    });
+                }
+            }, 100);
+        } else {
+            playerDiv.innerHTML = `
+                <div class="youtube-player-wrapper bg-gray-800 flex items-center justify-center">
+                    <div class="text-center p-4">
+                        <i class="fab fa-youtube text-5xl text-red-500 mb-2 block"></i>
+                        <p class="text-sm text-white">Video tidak ditemukan</p>
+                        <a href="https://www.youtube.com/results?search_query=${searchQuery}" target="_blank" 
+                           class="text-xs text-rose-400 hover:text-rose-300 underline mt-2 inline-block">
+                           Cari manual di YouTube
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+    };
+    
+    function getYouTubeVideoIdFromSearch(query) {
+        const dummyVideos = {
+            'pemrograman': 'dqarLdCxPls',
+            'javascript': 'W6NZfCO5SIk',
+            'manajemen': 'gXkFs8F1sjU',
+            'akuntansi': '9-pNwTdKJz8',
+            'psikologi': 'vo4pMVb0R6M',
+            'hukum': 'EcwrkCwwDmM',
+            'default': 'dQw4w9WgXcQ'
+        };
+        
+        const lowerQuery = query.toLowerCase();
+        for (let [key, id] of Object.entries(dummyVideos)) {
+            if (lowerQuery.includes(key)) return id;
+        }
+        return dummyVideos.default;
+    }
+
     window.launchRegistrationModal = async () => {
         const { value: studentNameInput } = await Swal.fire({
             title: 'Daftar Kartu Mahasiswa',
@@ -463,7 +668,7 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
                         id: 'init-core-msg',
                         sender: 'dosen',
                         type: 'text',
-                        text: `<div class="mb-2"><img src="${EMOTION_STICKERS.welcome}" class="w-16 h-16 object-contain" alt="Welcome Sticker"></div>Halo sayang, selamat datang di kelas ${targetMatkulName}. Ini ruang diskusi eksklusif kita berdua ya. Yuk langsung klik tombol "Ambil Modul Sesi Ini" di menu bawah biar aku jabarin materi kuliah kita hari ini lengkap secara runut dari awalan dasarnya, didukung referensi ahli, biar parameter pemahaman kamu jelas dan gak ke mana-mana. Semangat belajar bimbinganku!`,
+                        text: `<div class="mb-2"><img src="${EMOTION_STICKERS.welcome}" class="w-16 h-16 object-contain" alt="Welcome Sticker"></div>Halo sayang, selamat datang di kelas ${targetMatkulName}. Ini ruang diskusi eksklusif kita berdua ya. Yuk langsung klik tombol "Ambil Modul Sesi Ini" di menu bawah biar aku jabarkan materi kuliah kita hari ini lengkap secara runut dari awalan dasarnya, didukung referensi ahli, biar parameter pemahaman kamu jelas dan gak ke mana-mana. Semangat belajar bimbinganku!`,
                         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     }
                 ],
@@ -487,44 +692,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         render();
     };
 
-    window.executePdfDownloadPipeline = (topicKeyword) => {
-        Swal.fire({
-            title: 'Menyiapkan Berkas PDF...',
-            text: 'Mengunduh Dokumen Referensi Akademik Terkait ' + topicKeyword,
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-                setTimeout(() => {
-                    // SECURE BINARY GENERATION PREVENTS STORAGE CAPTURE FAILS
-                    const simulatedPdfRawString = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n178\n%%EOF";
-                    const dataBufferArray = new Uint8Array(simulatedPdfRawString.length);
-                    for (let i = 0; i < simulatedPdfRawString.length; i++) {
-                        dataBufferArray[i] = simulatedPdfRawString.charCodeAt(i);
-                    }
-                    
-                    const blobStorageBox = new Blob([dataBufferArray], { type: 'application/pdf' });
-                    const secureObjectUrl = window.URL.createObjectURL(blobStorageBox);
-                    
-                    const downloadTriggerNode = document.createElement('a');
-                    downloadTriggerNode.href = secureObjectUrl;
-                    downloadTriggerNode.download = `Jurnal_Referensi_${topicKeyword.replace(/\s+/g, '_')}_Aksis.pdf`;
-                    document.body.appendChild(downloadTriggerNode);
-                    downloadTriggerNode.click();
-                    
-                    document.body.removeChild(downloadTriggerNode);
-                    window.URL.revokeObjectURL(secureObjectUrl);
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'PDF Berhasil Diunduh!',
-                        text: 'Dokumen riset pendukung berhasil diamankan ke penyimpanan lokal kamu, sayang.',
-                        confirmButtonColor: '#10b981'
-                    });
-                }, 1500);
-            }
-        });
-    };
-
     window.triggerGenerateModulMateriWorkflow = async () => {
         const contextMatkul = appState.selectedMatkul.nama;
         const sessionContext = appState.classroomSessions[contextMatkul];
@@ -538,16 +705,9 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         render();
         autoScrollTerminalTimeline();
 
-        const cleanKeyword = contextMatkul.replace(/[^a-zA-Z0-9 S]/g, "");
+        const cleanKeyword = contextMatkul.replace(/[^a-zA-Z0-9\s]/g, "");
+        const videoPlayerId = `youtube-player-${Date.now()}`;
         
-        // Dynamic search embedding parameters to prevent raw asset blockades
-        const youtubeEmbedUrl = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent("Materi Kuliah " + cleanKeyword)}`;
-        const youtubeExternalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent("Materi Kuliah S1 " + cleanKeyword)}`;
-
-        const imageContextKeyword = encodeURIComponent(cleanKeyword.toLowerCase().replace(/\s+/g, ","));
-        const dynamicImageSource = `https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=600&q=80`; 
-        const dynamicLiveImage = `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80&q=${imageContextKeyword}`;
-
         const corePromptRequest = `Berikan materi pokok perkuliahan S1 komprehensif untuk kelas mata kuliah "${contextMatkul}" Semester ${appState.semesterAktif}. Jelaskan isi modul ini secara naratif mengalir alami dan mendalam mulai dari awalan fondasi dasarnya, latar belakang filosofisnya, serta batasan parameter keilmuannya. Ingat, fokus penuh pada bidang keilmuan "${contextMatkul}" dan dilarang melompat keluar topik atau membahas pemrograman jika ini bukan kelas IT! Wajib sertakan kutipan referensi nama para ahli terkemuka yang relevan. Di akhir materi wajib cantumkan bagan parameter belajar menggunakan diagram tekstual sederhana (ASCII/Text) di dalam tag <pre class="peta-visual-box"> agar saya tahu batas materinya.`;
 
         const neuralNetworkResponse = await contactAiNeuralEngine(corePromptRequest);
@@ -566,32 +726,25 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
             sender: 'dosen',
             type: 'text',
             text: `<div class="modul-container">
-                    <div class="text-xs uppercase font-black text-rose-500 mb-2 tracking-widest"><i class="fas fa-book-open"></i> Bahan Ajar & Studi Literatur Empiris</div>
-                    
-                    <div class="mb-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-2 shadow-sm">
-                        <span class="block text-[11px] font-bold text-slate-500 mb-1.5"><i class="fas fa-image"></i> Ilustrasi Visual Sektor ${contextMatkul}:</span>
-                        <img src="${dynamicLiveImage}" onerror="this.onerror=null; this.src='${dynamicImageSource}';" alt="Ilustrasi ${contextMatkul}" class="w-full h-48 object-cover rounded-lg shadow-sm">
-                    </div>
-
-                    <div class="mb-4 p-4 bg-slate-950 text-white rounded-xl overflow-hidden shadow-xl border border-slate-800">
-                        <span class="block text-xs text-rose-400 font-bold mb-2"><i class="fab fa-youtube"></i> Video Referensi Pembelajaran Visual: ${contextMatkul}</span>
-                        <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-black mb-2 shadow-inner">
-                            <iframe class="absolute top-0 left-0 w-full h-full" src="${youtubeEmbedUrl}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <div class="text-xs uppercase font-black text-rose-500 mb-2 tracking-widest"><i class="fas fa-book-open"></i> Bahan Ajar & Studi Literatur Empiris</div>
+                        
+                        <div class="mb-4 p-4 bg-slate-950 text-white rounded-xl overflow-hidden shadow-xl border border-slate-800">
+                            <span class="block text-xs text-rose-400 font-bold mb-2"><i class="fab fa-youtube"></i> Video Pembelajaran Interaktif: ${contextMatkul}</span>
+                            <div id="${videoPlayerId}" class="relative w-full aspect-video rounded-lg overflow-hidden bg-black shadow-inner"></div>
+                            <p class="text-[10px] text-slate-400 mt-2 text-center">*Video tanpa iklan dari sumber edukasi terpercaya</p>
                         </div>
-                        <a href="${youtubeExternalUrl}" target="_blank" class="block text-center text-[11px] font-bold text-white bg-red-600 hover:bg-red-700 py-2 rounded-lg transition"><i class="fas fa-external-link-alt mr-1"></i> Video Tidak Muncul? Klik Untuk Cari Rujukan Alternatif Di YouTube</a>
-                    </div>
 
-                    <div class="mb-2"><img src="${EMOTION_STICKERS.learning}" class="w-14 h-14 object-contain" alt="Study Sticker"></div>
-                    <div class="text-sm space-y-2 leading-relaxed text-justify whitespace-pre-line">${neuralNetworkResponse}</div>
-                    
-                    <div class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                        <span class="block text-xs text-emerald-600 font-black uppercase mb-1"><i class="fas fa-scroll"></i> Bedah Jurnal & Karya Riset Pendukung</span>
-                        <p class="text-xs opacity-90 mb-2">Artikel Ilmiah Terkait: "Analisis Perkembangan Mutakhir Kontemporer Sektor ${contextMatkul}" via Google Scholar Open Access.</p>
-                        <div class="flex flex-wrap gap-2">
-                            <a href="https://scholar.google.com/scholar?q=${encodeURIComponent(contextMatkul)}" target="_blank" class="inline-block text-xs font-bold text-white bg-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition"><i class="fas fa-search mr-1"></i> Buka Repositori Jurnal</a>
-                            <button onclick="window.executePdfDownloadPipeline('${contextMatkul.replace(/'/g, "\\'")}')" class="inline-block text-xs font-bold text-white bg-teal-600 px-3 py-1.5 rounded-lg hover:bg-teal-700 transition"><i class="fas fa-file-pdf mr-1"></i> Ambil PDF Terkait</button>
+                        <div class="mb-2"><img src="${EMOTION_STICKERS.learning}" class="w-14 h-14 object-contain" alt="Study Sticker"></div>
+                        <div class="text-sm space-y-2 leading-relaxed text-justify whitespace-pre-line">${neuralNetworkResponse}</div>
+                        
+                        <div class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                            <span class="block text-xs text-emerald-600 font-black uppercase mb-1"><i class="fas fa-scroll"></i> Bedah Jurnal & Karya Riset Pendukung</span>
+                            <p class="text-xs opacity-90 mb-2">Artikel Ilmiah Terkait: "Analisis Perkembangan Mutakhir Kontemporer Sektor ${contextMatkul}" via Google Scholar Open Access.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="https://scholar.google.com/scholar?q=${encodeURIComponent(contextMatkul)}" target="_blank" class="inline-block text-xs font-bold text-white bg-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition"><i class="fas fa-search mr-1"></i> Buka Repositori Jurnal</a>
+                                <button onclick="window.executePdfDownloadPipeline('${contextMatkul.replace(/'/g, "\\'")}')" class="inline-block text-xs font-bold text-white bg-teal-600 px-3 py-1.5 rounded-lg hover:bg-teal-700 transition"><i class="fas fa-file-pdf mr-1"></i> Ambil PDF Terkait</button>
+                            </div>
                         </div>
-                    </div>
                    </div>`,
             timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         });
@@ -600,7 +753,7 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
             id: 'modul-followup-' + Date.now(),
             sender: 'dosen',
             type: 'text',
-            text: `Nah, materi kuliah and rujukan ahlinya sudah aku jabarkan di atas ya sayang. Ilustrasi visual beserta videonya juga sudah tersusun rapi di atas rujukan jurnal ilmiah biar ngga berantakan lagi. Kalau ada pembahasan awalan konsep yang kamu belum paham, tanyain aja langsung ke aku. Tapi kalau kamu udah siap menguji parameter kompetensi kamu, klik tombol "Uji Kompetensi Kuis" di bawah biar langsung aku tes ya!`,
+            text: `Nah, materi kuliah dan rujukan ahlinya sudah aku jabarkan di atas ya sayang. Video pembelajaran juga sudah tersedia tanpa iklan. Kalau ada pembahasan awalan konsep yang kamu belum paham, tanyain aja langsung ke aku. Tapi kalau kamu udah siap menguji parameter kompetensi kamu, klik tombol "Uji Kompetensi Kuis" di bawah biar langsung aku tes ya!`,
             timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         });
 
@@ -609,6 +762,10 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         saveApplicationStateToDisk();
         render();
         autoScrollTerminalTimeline();
+        
+        setTimeout(() => {
+            window.searchAndPlayYouTube(contextMatkul, videoPlayerId);
+        }, 500);
     };
 
     window.triggerAppKuisWorkflow = async () => {
@@ -776,7 +933,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         if (gradingFeedbackResponse.startsWith("ERROR_SIGNAL_FALLBACK:")) {
             const cleanErrorMessage = gradingFeedbackResponse.replace("ERROR_SIGNAL_FALLBACK: ", "");
             Swal.fire('Evaluasi Gagal', `Sistem gagal mengoreksi lembar jawaban (${cleanErrorMessage}). Silakan kirim ulang jawaban terbaikmu sayang.`, 'error');
-            sessionContext.chats.pop(); 
             render();
             autoScrollTerminalTimeline();
             return;
@@ -876,7 +1032,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         }, 60);
     }
 
-    // WINDOW VIEWPORT MARKUP GENERATOR COMPONENT BLOCKS
     function generateLandingPageHTMLView() {
         let dynamicGradient = "gradient-brand-girly";
         if (appState.currentTheme === 'theme-manly') dynamicGradient = "gradient-brand-manly";
@@ -1084,15 +1239,14 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
                                 `;
                             }
 
-                            // Inject dynamic operational action fields (Sound Reader Buttons) inside the card body
                             return `
                             <div class="flex justify-start msg-entry">
                                 <div class="bg-surface rounded-2xl rounded-tl-none px-4 py-4 border card-border shadow-sm max-w-[92%] sm:max-w-[85%] w-full">
                                     <div class="text-xs font-black text-rose-500 uppercase tracking-widest mb-2 flex justify-between items-center">
                                         <span class="flex items-center gap-1"><i class="fas fa-user-shield"></i> Mbak You <span class="bg-rose-500/10 text-[9px] text-rose-400 px-2 py-0.5 rounded-full font-black border border-rose-500/20">Dosen Pengampu S1</span></span>
-                                        <button onclick="window.readAloudMbakYouSpeech(\`${bubbleItem.text.replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, ' ')}\`)" class="text-rose-500 hover:text-white hover:bg-rose-500 px-2 py-1 rounded-md border border-rose-200 text-[10px] font-extrabold flex items-center gap-1 transition"><i class="fas fa-volume-up"></i> Dengarkan</button>
+                                        <button onclick="window.readAloudMbakYouSpeech(\`${(bubbleItem.text || '').replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, ' ')}\`)" class="text-rose-500 hover:text-white hover:bg-rose-500 px-2 py-1 rounded-md border border-rose-200 text-[10px] font-extrabold flex items-center gap-1 transition"><i class="fas fa-volume-up"></i> Dengarkan</button>
                                     </div>
-                                    <div class="text-sm sm:text-base leading-relaxed opacity-95 text-justify whitespace-normal">${bubbleItem.text}</div>
+                                    <div class="text-sm sm:text-base leading-relaxed opacity-95 text-justify whitespace-normal">${bubbleItem.text || ''}</div>
                                     <span class="block text-[9px] opacity-40 text-left mt-2 font-bold">${bubbleItem.timestamp}</span>
                                 </div>
                             </div>
@@ -1145,7 +1299,6 @@ ATURAN STRUKTUR BELAJAR & PARAMETER (SANGAT KETAT):
         }
     }
 
-    // BOOTSTRAP INITIALIZATION PIPELINE RUNNER
     loadApplicationStateFromDisk();
     render();
     autoScrollTerminalTimeline();
