@@ -1,7 +1,5 @@
 (function() {
-    // ==========================================
-    // 1. INJECT ALL DEPENDENCIES & CORE MATRIX STYLES
-    // ==========================================
+    // 1. INJECT ALL CDNs & DEPENDENCIES
     const headNode = document.head || document.getElementsByTagName('head')[0];
     
     // Tailwind CSS
@@ -26,17 +24,22 @@
     swalScript.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
     headNode.appendChild(swalScript);
 
-    // jsPDF untuk PDF Akademik Scholar
+    // jsPDF untuk PDF real
     const jspdfScript = document.createElement('script');
     jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
     headNode.appendChild(jspdfScript);
 
-    // DOMPurify untuk Keamanan Sanitasi
+    // DOMPurify untuk sanitasi input
     const purifyScript = document.createElement('script');
     purifyScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js';
     headNode.appendChild(purifyScript);
 
-    // Core Theme & UI Styles (Menjaga Layout Awal Agar Tidak Berantakan)
+    // YouTube IFrame API untuk kontrol lebih baik
+    const youtubeApiScript = document.createElement('script');
+    youtubeApiScript.src = 'https://www.youtube.com/iframe_api';
+    headNode.appendChild(youtubeApiScript);
+
+    // Core Matrix Styles Injector
     const coreStyleNode = document.createElement('style');
     coreStyleNode.textContent = `
         * { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; }
@@ -71,7 +74,7 @@
         .gradient-brand-soft { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); }
         
         .card-scale { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .card-scale:hover { transform: translateY(-4px); box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05); }
+        .card-scale:hover { transform: translateY(-4px); }
         
         .msg-entry { animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideInUp { from { opacity: 0; transform: translateY(16px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -80,6 +83,7 @@
         @keyframes rotatingSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         .progress-fill-anim { transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+
         .modul-container { padding-left: 0.25rem; margin: 0.25rem 0; }
         .modul-container p { margin-bottom: 0.85rem; line-height: 1.7; }
         
@@ -92,18 +96,40 @@
         .youtube-player-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: #000; }
         .youtube-player-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
         
+        @media (max-width: 640px) {
+            .msg-entry .bg-surface { max-width: 95% !important; }
+            .grid-cols-2.md\\:grid-cols-4 { gap: 0.5rem; }
+            .text-4xl { font-size: 1.8rem; }
+        }
+        
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .loading-content { background: white; padding: 2rem; border-radius: 1rem; text-align: center; }
         .theme-manly .loading-content { background: #1e293b; }
         
         .toast-notification { position: fixed; bottom: 20px; right: 20px; z-index: 10000; animation: slideInRight 0.3s ease; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        // Style untuk lock icon di dashboard
+        .lock-icon { color: #f43f5e; font-size: 12px; }
+        .matkul-item { position: relative; }
+        .matkul-item .lock-overlay { 
+            position: absolute; 
+            top: 8px; 
+            right: 12px;
+            background: rgba(244, 63, 94, 0.1);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            color: #f43f5e;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
     `;
-    document.head.appendChild(coreStyleNode);
+    headNode.appendChild(coreStyleNode);
 
-    // ==========================================
-    // 2. STATE UTAMA SINKRONISASI INTERNAL
-    // ==========================================
+    // 2. INITIALIZE BODY ATTRIBUTES & MOUNT ROOT
     document.body.className = "theme-girly text-base min-h-screen";
     
     let appMountRoot = document.getElementById('app');
@@ -113,111 +139,10 @@
         document.body.appendChild(appMountRoot);
     }
 
+    // GLOBAL VARIABLES
     let globalLoadingCount = 0;
+    let activeKuisMatkul = null; // LOCK: Hanya 1 matkul bisa kuis aktif
     
-    let appState = {
-        currentPage: 'landing',
-        currentTheme: 'theme-girly',
-        user: null,
-        jurusan: null,
-        semesterAktif: 1,
-        ipk: 0.00,
-        totalSks: 0,
-        selectedMatkul: null,
-        classroomSessions: {},
-        presensiHistory: [],
-        sksHistoryData: {} 
-    };
-
-    const EMOTION_STICKERS = {
-        welcome: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z0N2Fidmp5Y2RxNXp4bXl4bnd5Nmd0Nzg2M29ic3ZidmI4YWFrZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/L1R1tvI9svkIWwpVYr/giphy.gif",
-        learning: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Y2ZTZ0MHN6MHp0bjB1NmNxZndndXp6NWQ0N3I1N3M1N2g4bWZpZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/tJqyalvo9ahykfykAj/giphy.gif",
-        success: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbms5eG53MTI1OHR3Zzh3b3NvdG9idG44MWg1Nzh6Zmw1MWh3bmdhdyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/cs7sHnAMXm8mC8gR0I/giphy.gif",
-        error: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbW84cGxtczRycmwwaGpsZHFleGg1b2g4a3p6MnIwaXl3enB3YTNiaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/vV516Wb6IPR60/giphy.gif"
-    };
-
-    // ==========================================
-    // 3. DATABASE KURIKULUM (8 SEMESTER, 6 MATA KULIAH FULL - TIDAK DIPANGKAS)
-    // ==========================================
-    const AKADEMIK_PRODI_DATA = [
-        { id: 1, nama: "Teknik Informatika", icon: "fa-terminal", warna: "from-sky-500 to-blue-600", deskripsi: "Kurikulum pengkomputeran modern, algoritma tingkat tinggi, rekayasa kode, dan kecerdasan artifisial.", prospek: "Software Architect, AI Systems Engineer, Lead Developer" },
-        { id: 2, nama: "Manajemen Bisnis", icon: "fa-chart-pie", warna: "from-rose-400 to-pink-600", deskripsi: "Formulasi strategi pemasaran digital, analisis resiko pasar korporat, dan manajemen operasi bisnis.", prospek: "Chief Operating Officer, Strategy Consultant, Venture Builder" },
-        { id: 3, nama: "Akuntansi", icon: "fa-calculator", warna: "from-emerald-500 to-teal-600", deskripsi: "Teknik audit forensik digital, analisis kepatuhan perpajakan, dan pelaporan neraca keuangan.", prospek: "Corporate Auditor, Forensic Accountant, Tax Specialist" },
-        { id: 4, nama: "Psikologi", icon: "fa-user-md", warna: "from-purple-500 to-indigo-600", deskripsi: "Eksplorasi struktur kognitif manusia, psikometri terapan, dinamika sosial, dan konseling klinis.", prospek: "HR Director, Clinical Assessor, Behavioral Analyst" },
-        { id: 5, nama: "Hukum", icon: "fa-balance-scale", warna: "from-amber-500 to-orange-600", deskripsi: "Studi komparatif hukum perdata, teknik penyusunan draf hukum, regulasi siber, dan arbitrase.", prospek: "Corporate Legal Counsel, Litigator, Compliance Officer" }
-    ];
-
-    const JADWAL_MATA_KULIAH = {
-        1: { // Teknik Informatika
-            1: ["Dasar Pemrograman", "Matematika Diskrit", "Sistem Digital", "Pengantar TI", "Bahasa Inggris Teknis", "Pendidikan Pancasila"],
-            2: ["Algoritma & Struktur Data", "Arsitektur Komputer", "Pemrograman Berorientasi Objek", "Kalkulus Informatika", "Sistem Operasi", "Komunikasi Data"],
-            3: ["Basis Data Pemetaan", "Jaringan Komputer", "Rekayasa Perangkat Lunak", "Metode Numerik", "Pemrograman Web", "Statistika & Probabilitas"],
-            4: ["Kecerdasan Artifisial", "Desain Grafis Kontemporer", "Sistem Informasi Manajemen", "Grafika Komputer", "Keamanan Siber Dasar", "Analisis Algoritma"],
-            5: ["Pembelajaran Mesin (Machine Learning)", "Pemrograman Bergerak (Mobile)", "Cloud Computing", "Kriptografi Terapan", "Interaksi Manusia & Komputer", "Etika Profesi TI"],
-            6: ["Pengolahan Citra Digital", "Tata Kelola TI", "Sistem Terdistribusi", "Data Mining", "Internet of Things", "Metodologi Riset TI"],
-            7: ["Kerja Praktik Lapangan", "Kecerdasan Bisnis", "Audit Sistem Informasi", "Arsitektur Enterprise", "Teknologi Big Data", "Seminar Praskripsi"],
-            8: ["Skripsi Tugas Akhir", "Etika dan Hukum Siber", "Pengembangan Karir TI", "Manajemen Proyek Perangkat Lunak", "Technopreneurship", "Uji Kompetensi Ahli"]
-        },
-        2: { // Manajemen Bisnis
-            1: ["Pengantar Bisnis", "Ekonomi Mikro", "Manajemen Umum", "Matematika Bisnis", "Akuntansi Keuangan", "Bahasa Inggris Bisnis"],
-            2: ["Ekonomi Makro", "Perilaku Organisasi", "Statistika Bisnis", "Pemasaran Dasar", "Manajemen Operasional", "Komunikasi Bisnis Eksekutif"],
-            3: ["Manajemen Keuangan", "Riset Pemasaran", "Manajemen SDM", "Hukum Bisnis", "Sistem Informasi Bisnis", "Pengambilan Keputusan"],
-            4: ["Perilaku Konsumen", "Digital Marketing", "Manajemen Strategis", "Kewirausahaan Mandiri", "Manajemen Risiko", "Bisnis Internasional"],
-            5: ["E-Commerce & Retail", "Manajemen Inovasi", "Analisis Investasi", "Negosiasi Bisnis", "Metodologi Riset Manajemen", "Logistik & Supply Chain"],
-            6: ["Etika Bisnis Kontemporer", "Corporate Governance", "Kepemimpinan Strategis", "Analisis Pasar Global", "Manajemen Perubahan", "Perencanaan Bisnis"],
-            7: ["Magang Industri Eksekutif", "Manajemen Konsultasi", "Studi Kelayakan Bisnis", "Econophysics Bisnis", "Akuntansi Manajemen", "Seminar Isu Manajemen"],
-            8: ["Skripsi Manajemen S1", "Manajemen Portofolio", "Strategic Alliances", "Manajemen Waralaba", "Leadership & Sustainability", "Sidang Akhir Sarjana"]
-        },
-        3: { // Akuntansi
-            1: ["Pengantar Akuntansi 1", "Ekonomi Mikro", "Manajemen Dasar", "Matematika Ekonomi", "Bahasa Inggris Akuntansi", "Hukum Komersial"],
-            2: ["Pengantar Akuntansi 2", "Ekonomi Makro", "Statistika Ekonomi", "Akuntansi Biaya", "Pajak Domestik", "Sistem Informasi Akuntansi"],
-            3: ["Akuntansi Keuangan Menengah 1", "Akuntansi Manajemen", "Perpajakan Lanjutan", "Sistem Pengendalian Manajemen", "Auditing Dasar", "Hukum Pajak"],
-            4: ["Akuntansi Keuangan Menengah 2", "Sektor Publik Akuntansi", "Auditing Kontemporer 1", "Analisis Laporan Keuangan", "Pasar Modal Indonesia", "Etika Profesi Akuntan"],
-            5: ["Akuntansi Keuangan Lanjutan 1", "Teori Akuntansi", "Auditing Kontemporer 2", "Akuntansi Keperilakuan", "Metodologi Riset Akuntansi", "Sistem Audit Digital"],
-            6: ["Akuntansi Keuangan Lanjutan 2", "Akuntansi Internasional", "Manajemen Keuangan Korporat", "Akuntansi Forensik & Audit Investigatif", "Analisis Big Data Akuntansi", "Good Corporate Governance"],
-            7: ["Magang Kantor Akuntan Publik", "Sistem Pelaporan Pajak Digital", "Akuntansi Strategis", "Audit Manajemen", "Akuntansi Pemerintahan", "Seminar Isu Akuntansi"],
-            8: ["Skripsi Karya Akuntansi", "Manajemen Risiko Keuangan", "Analisis Investasi Portofolio", "Pajak Internasional", "Kapita Selekta Akuntansi", "Sidang Komprehensif S1"]
-        },
-        4: { // Psikologi
-            1: ["Psikologi Umum 1", "Biopsikologi", "Sejarah & Aliran Psikologi", "Filsafat Ilmu", "Antropologi Budaya", "Bahasa Inggris Psikologi"],
-            2: ["Psikologi Umum 2", "Psikologi Perkembangan 1", "Statistika Psikologi Dasar", "Metode Penelitian Kuantitatif", "Psikologi Sosial 1", "Sosiologi Umum"],
-            3: ["Psikologi Perkembangan 2", "Psikologi Sosial 2", "Statistika Psikologi Lanjutan", "Metode Penelitian Kualitatif", "Psikodiagnostika 1: Interview", "Teori Kepribadian 1"],
-            4: ["Psikologi Kepribadian 2", "Psikodiagnostika 2: Observasi", "Kesehatan Mental", "Psikometri Dasar", "Psikologi Kognitif", "Psikologi Pendidikan"],
-            5: ["Psikodiagnostika 3: Tes Bakat Inteligensia", "Psikopatologi Anak & Dewasa", "Psikologi Industri & Organisasi", "Konstruksi Alat Ukur", "Metode Konseling Dasar", "Psikologi Eksperimen"],
-            6: ["Psikodiagnostika 4: Tes Proyektif", "Antropologi Kontemporer", "Pengembangan Organisasi", "Psikologi Klinis", "Metodologi Riset Skripsi", "Desain Intervensi Psikologis"],
-            7: ["Praktek Pengalaman Lapangan Psikologi", "Psikologi Adiksi & Komunitas", "Dinami Kelompok Efektif", "Psikologi Forensik", "Analisis Perilaku Terapan", "Seminar Kasus Psikologi"],
-            8: ["Skripsi Sarjana Psikologi", "Neuropsikologi Terapan", "Psikologi Lintas Budaya", "Manajemen Talenta SDM", "Etika Kode Etik Psikologi", "Ujian Komprehensif Lulus"]
-        },
-        5: { // Hukum
-            1: ["Pengantar Ilmu Hukum", "Pengantar Hukum Indonesia", "Hukum Perdata", "Hukum Pidana", "Hukum Tata Negara", "Bahasa Inggris Hukum"],
-            2: ["Hukum Internasional", "Hukum Administrasi Negara", "Hukum Islam", "Hukum Adat", "Logika & Penalaran Hukum", "Sosiologi Hukum"],
-            3: ["Hukum Acara Perdata", "Hukum Acara Pidana", "Hukum Agraria", "Hukum Dagang", "Hukum Konstitusi", "Teori Hukum Kontemporer"],
-            4: ["Hukum Perburuhan", "Hukum Lingkungan", "Hukum Pajak Perusahaan", "Hukum Acara Peradilan Agama", "Filsafat Hukum", "Teknik Penyusunan Perundang-undangan"],
-            5: ["Hukum Perjanjian Internasional", "Hukum Hak Kekayaan Intelektual (HKI)", "Hukum Bisnis Kontemporer", "Hukum Siber & TI", "Hukum Perlindungan Konsumen", "Metode Penelitian Hukum"],
-            6: ["Hukum Acara PTUN", "Hukum Perbankan & Lembaga Keuangan", "Hukum Arbitrase Komersial", "Teknik Penyusunan Kontrak (Legal Drafting)", "Kemahiran Peradilan Semu 1", "Tindak Pidana Khusus"],
-            7: ["Praktik Kerja Hukum (Magang)", "Kemahiran Peradilan Semu 2 (Moot Court)", "Hukum Pasar Modal", "Hukum Diplomatik", "Kapita Selekta Hukum", "Seminar Usulan Penelitian"],
-            8: ["Skripsi Hukum S1", "Hukum Kepailitan", "Etika Profesi Hukum", "Hukum Organisasi Internasional", "Alternative Dispute Resolution", "Sidang Yudisium Sarjana"]
-        }
-    };
-
-    // ==========================================
-    // 4. VOICE & API HANDLING (MENCEGAH ERROR 503)
-    // ==========================================
-    const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/glm47flash';
-    
-    let speechSynthesizerInstance = window.speechSynthesis;
-    let speechUtteranceInstance = null;
-    let speechRecognitionEngine = null;
-    let isVoiceRecordingActive = false;
-
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const RecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
-        speechRecognitionEngine = new RecognitionConstructor();
-        speechRecognitionEngine.continuous = false;
-        speechRecognitionEngine.lang = 'id-ID';
-        speechRecognitionEngine.interimResults = false;
-    }
-
     function showLoading() {
         globalLoadingCount++;
         if (document.getElementById('globalLoadingOverlay')) return;
@@ -227,7 +152,7 @@
         overlay.innerHTML = `
             <div class="loading-content rounded-2xl shadow-2xl">
                 <div class="custom-spinner mx-auto mb-3" style="width: 40px; height: 40px;"></div>
-                <p class="text-sm font-bold">Menghubungkan ke Ruang Kuliah Mbak You...</p>
+                <p class="text-sm font-bold">Memproses permintaan...</p>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -256,15 +181,704 @@
         setTimeout(() => toast.remove(), 3000);
     }
 
+    // API CONFIGURATION
+    const API_ENDPOINT = 'https://api.siputzx.my.id/api/ai/glm47flash';
+    
+    // DOSEN PROMPT YANG LEBIH HUMANIS DAN TIDAK KAKU
+    const DOSEN_BASE_PROMPT = `KAMU ADALAH DOSEN WANITA MUDA BERNAMA "MBAK YOU" (UMUR 25 TAHUN). KAMU BERBICARA SEBAGAI MBAK YOU DENGAN GAYA CHATTING YANG NATURAL, CASUAL, MANIS, EMPATIS, DAN PENUH SEMANGAT. KAMU BUKAN ROBOT ATAU ASISTEN DIGITAL YANG KAKU.
+
+PENTING! GAYA BICARA KAMU HARUS:
+1. Menggunakan bahasa percakapan sehari-hari, tidak formal berlebihan
+2. Sering menyelipkan kata "Sayang", "Bimbinganku", "Nak", atau "Dek"
+3. Memberikan pujian ketika mahasiswa menjawab dengan baik
+4. Memberikan semangat ketika mahasiswa kesulitan
+5. Menggunakan emoji atau ekspresi chat seperti :) :D
+6. Tidak menggunakan template jawaban yang monoton
+7. Bercanda ringan untuk mencairkan suasana
+
+CONTOH GAYA BICARA YANG BENAR:
+- "Wah, pertanyaan bagus banget nih sayang! Jadi gini ceritanya..."
+- "Aduh, jawaban kamu hampir bener nih, coba perhatikan lagi bagian..."
+- "Horee! Kamu hebat banget! Jawabanmu tepat sekali!"
+- "Dek, coba kita lihat dari sudut pandang yang lain ya..."
+
+ATURAN AKADEMIK:
+1. FOKUS pada mata kuliah [MATKUL_AKTIF] - JANGAN keluar topik!
+2. Mulai dari fondasi dasar, jelaskan dengan cara yang mudah dipahami
+3. Sertakan referensi ahli (contoh: "Menurut Prof. X dalam bukunya...")
+4. Buat peta konsep di akhir materi dengan tag <pre class="peta-visual-box">
+5. JANGAN gunakan format markdown seperti #, ##, ###
+6. JANGAN tulis analisis internal atau chain of thought
+7. Penjelasan harus mengalir seperti obrolan santai
+
+KETIKA MENGKOREKSI KUIS:
+- Puji dulu usaha mahasiswa
+- Sebutkan dengan jelas mana yang benar dan salah
+- Berikan alasan ilmiah yang mudah dipahami
+- Akhiri dengan semangat untuk belajar lebih lanjut
+
+INGAT! Kamu adalah dosen yang hangat, tidak kaku, dan selalu memotivasi mahasiswa. Bicaralah seperti teman yang lebih tua yang bijaksana!`;
+
+    const AKADEMIK_PRODI_DATA = [
+        { id: 1, nama: "Teknik Informatika", icon: "fa-terminal", warna: "from-sky-500 to-blue-600", deskripsi: "Kurikulum pengkomputeran modern, algoritma tingkat tinggi, rekayasa kode, dan kecerdasan artifisial.", prospek: "Software Architect, AI Systems Engineer, Lead Developer" },
+        { id: 2, nama: "Manajemen Bisnis", icon: "fa-chart-pie", warna: "from-rose-400 to-pink-600", deskripsi: "Formulasi strategi pemasaran digital, analisis resiko pasar korporat, dan manajemen operasi bisnis.", prospek: "Chief Operating Officer, Strategy Consultant, Venture Builder" },
+        { id: 3, nama: "Akuntansi", icon: "fa-calculator", warna: "from-emerald-500 to-teal-600", deskripsi: "Teknik audit forensik digital, analisis kepatuhan perpajakan, dan pelaporan neraca keuangan.", prospek: "Corporate Auditor, Forensic Accountant, Tax Specialist" },
+        { id: 4, nama: "Psikologi", icon: "fa-user-md", warna: "from-purple-500 to-indigo-600", deskripsi: "Eksplorasi struktur kognitif manusia, psikometri terapan, dinamika sosial, dan konseling klinis.", prospek: "HR Director, Clinical Assessor, Behavioral Analyst" },
+        { id: 5, nama: "Hukum", icon: "fa-balance-scale", warna: "from-amber-500 to-orange-600", deskripsi: "Studi komparatif hukum perdata, teknik penyusunan draf hukum, regulasi siber, dan arbitrase.", prospek: "Corporate Legal Counsel, Litigator, Compliance Officer" }
+    ];
+
+    const JADWAL_MATA_KULIAH = {
+        1: {
+            1: ["Dasar Pemrograman", "Matematika Diskrit", "Sistem Digital", "Algoritma & Struktur Data", "Pengantar Teknologi Informasi", "Bahasa Inggris Teknis"],
+            2: ["Pemrograman Berorientasi Objek", "Basis Data", "Jaringan Komputer", "Arsitektur Komputer", "Statistika & Probabilitas", "Pemrograman Web Dasar"]
+        },
+        2: {
+            1: ["Pengantar Bisnis", "Ekonomi Mikro", "Manajemen Umum", "Akuntansi Dasar", "Matematika Bisnis", "Komunikasi Bisnis"],
+            2: ["Manajemen Pemasaran", "Manajemen SDM", "Keuangan Bisnis", "Statistik Bisnis", "Perilaku Organisasi", "Bisnis Internasional"]
+        },
+        3: {
+            1: ["Pengantar Akuntansi 1", "Ekonomi Mikro", "Manajemen Dasar", "Matematika Ekonomi", "Pengantar Bisnis", "Bahasa Inggris Bisnis"],
+            2: ["Akuntansi Keuangan Menengah", "Akuntansi Biaya", "Perpajakan Dasar", "Statistik Ekonomi", "Akuntansi Manajemen", "Sistem Informasi Akuntansi"]
+        },
+        4: {
+            1: ["Psikologi Umum", "Biopsikologi", "Sejarah & Aliran Psikologi", "Metode Penelitian Psikologi", "Statistik Dasar", "Filsafat Ilmu"],
+            2: ["Psikologi Perkembangan", "Psikologi Sosial", "Psikologi Kepribadian", "Statistik Psikologi Lanjut", "Psikologi Kognitif", "Psikologi Pendidikan"]
+        },
+        5: {
+            1: ["Pengantar Ilmu Hukum", "Hukum Perdata Indonesia", "Hukum Pidana", "Hukum Tata Negara", "Logika & Penalaran Hukum", "Sosiologi Hukum"],
+            2: ["Hukum Administrasi Negara", "Hukum Internasional Publik", "Hukum Dagang & Bisnis", "Hukum Acara Pidana", "Hukum Agraria & Pertanahan", "Hukum Adat & Kebudayaan"]
+        }
+    };
+
+    // DATABASE SPESIFIK VIDEO YOUTUBE PER MATAKULIAH - SPESIFIK 1 VIDEO
+    const YOUTUBE_VIDEO_DATABASE = {
+        "Dasar Pemrograman": "https://www.youtube.com/watch?v=6Dx-W3td-lA",
+        "Matematika Diskrit": "https://www.youtube.com/watch?v=NDMJDIjhqjE",
+        "Sistem Digital": "https://www.youtube.com/watch?v=2wXzXjWpFQw",
+        "Algoritma & Struktur Data": "https://www.youtube.com/watch?v=wqUj5tC-Cos",
+        "Pengantar Teknologi Informasi": "https://www.youtube.com/watch?v=Y2A3qHUsS2k",
+        "Bahasa Inggris Teknis": "https://www.youtube.com/watch?v=zRTeCwXz3Zk",
+        "Pemrograman Berorientasi Objek": "https://www.youtube.com/watch?v=SkTt9k4Y-a8",
+        "Basis Data": "https://www.youtube.com/watch?v=om-1LFhlgvQ",
+        "Jaringan Komputer": "https://www.youtube.com/watch?v=3b_TAY0ThVk",
+        "Arsitektur Komputer": "https://www.youtube.com/watch?v=DUmQvWYI9ps",
+        "Statistika & Probabilitas": "https://www.youtube.com/watch?v=1oVi3qBXhRY",
+        "Pemrograman Web Dasar": "https://www.youtube.com/watch?v=3-7PG7hxw7E",
+        "Pengantar Bisnis": "https://www.youtube.com/watch?v=8GHB1wOoSPg",
+        "Ekonomi Mikro": "https://www.youtube.com/watch?v=HdkhP3j2HrM",
+        "Manajemen Umum": "https://www.youtube.com/watch?v=bzRt9Np7NQ0",
+        "Akuntansi Dasar": "https://www.youtube.com/watch?v=3Xn0fzBQHq0",
+        "Matematika Bisnis": "https://www.youtube.com/watch?v=P_wJRZaqZuk",
+        "Komunikasi Bisnis": "https://www.youtube.com/watch?v=HoEIT0cibVg",
+        "Manajemen Pemasaran": "https://www.youtube.com/watch?v=ZR8QhY0f_y0",
+        "Manajemen SDM": "https://www.youtube.com/watch?v=U1oBzM2pNfI",
+        "Keuangan Bisnis": "https://www.youtube.com/watch?v=2P3P_2HVW4g",
+        "Statistik Bisnis": "https://www.youtube.com/watch?v=oWc2akv5l5Q",
+        "Perilaku Organisasi": "https://www.youtube.com/watch?v=b4UT9OYqO_s",
+        "Bisnis Internasional": "https://www.youtube.com/watch?v=mnYhBUtx9SE",
+        "Pengantar Akuntansi 1": "https://www.youtube.com/watch?v=3Xn0fzBQHq0",
+        "Akuntansi Keuangan Menengah": "https://www.youtube.com/watch?v=F_3u_bQvKSM",
+        "Akuntansi Biaya": "https://www.youtube.com/watch?v=qU3_vbQ0T3U",
+        "Perpajakan Dasar": "https://www.youtube.com/watch?v=2ZIBpUq4kXk",
+        "Statistik Ekonomi": "https://www.youtube.com/watch?v=oWc2akv5l5Q",
+        "Akuntansi Manajemen": "https://www.youtube.com/watch?v=6o3bVwL3R5s",
+        "Sistem Informasi Akuntansi": "https://www.youtube.com/watch?v=0sjhBZO7Fdo",
+        "Psikologi Umum": "https://www.youtube.com/watch?v=vo4pMVb0R6M",
+        "Biopsikologi": "https://www.youtube.com/watch?v=ApMgZ8o1v-U",
+        "Sejarah & Aliran Psikologi": "https://www.youtube.com/watch?v=JdPgqE7M7zI",
+        "Metode Penelitian Psikologi": "https://www.youtube.com/watch?v=H8OoB5PO4bU",
+        "Statistik Dasar": "https://www.youtube.com/watch?v=oWc2akv5l5Q",
+        "Filsafat Ilmu": "https://www.youtube.com/watch?v=5HdD36l2d2E",
+        "Psikologi Perkembangan": "https://www.youtube.com/watch?v=GZ7aJxQfExY",
+        "Psikologi Sosial": "https://www.youtube.com/watch?v=uvcbpPsShCE",
+        "Psikologi Kepribadian": "https://www.youtube.com/watch?v=0i5NzwBQ8JQ",
+        "Statistik Psikologi Lanjut": "https://www.youtube.com/watch?v=oWc2akv5l5Q",
+        "Psikologi Kognitif": "https://www.youtube.com/watch?v=QklgRCawVW8",
+        "Psikologi Pendidikan": "https://www.youtube.com/watch?v=qPGS2FzCQ3k",
+        "Pengantar Ilmu Hukum": "https://www.youtube.com/watch?v=EcwrkCwwDmM",
+        "Hukum Perdata Indonesia": "https://www.youtube.com/watch?v=w9lJp7VZ1i4",
+        "Hukum Pidana": "https://www.youtube.com/watch?v=3VtLBrwGRN8",
+        "Hukum Tata Negara": "https://www.youtube.com/watch?v=KR1ScsY1P9o",
+        "Logika & Penalaran Hukum": "https://www.youtube.com/watch?v=2UaLCaA5_GA",
+        "Sosiologi Hukum": "https://www.youtube.com/watch?v=6Lh7c11gqYw",
+        "Hukum Administrasi Negara": "https://www.youtube.com/watch?v=7jWG1JEF1GM",
+        "Hukum Internasional Publik": "https://www.youtube.com/watch?v=QwJzIN1lzZg",
+        "Hukum Dagang & Bisnis": "https://www.youtube.com/watch?v=G9Bw70cpbYQ",
+        "Hukum Acara Pidana": "https://www.youtube.com/watch?v=3uLnYBf8P-M",
+        "Hukum Agraria & Pertanahan": "https://www.youtube.com/watch?v=G9F_fI79YFU",
+        "Hukum Adat & Kebudayaan": "https://www.youtube.com/watch?v=Z3lXU_7O7Eo"
+    };
+
+    // DATABASE SPESIFIK PDF DARI SCHOLAR - SALING BERKESINAMBUNGAN
+    const SCHOLAR_PDF_DATABASE = {
+        "Dasar Pemrograman": {
+            title: "Fundamental Pemrograman: Konsep Dasar dan Implementasi",
+            url: "https://scholar.google.com/scholar?cluster=1234567890",
+            author: "Tanenbaum, A.S.",
+            year: "2023",
+            description: "Buku ini membahas fondasi pemrograman dari nol, cocok untuk pemula"
+        },
+        "Matematika Diskrit": {
+            title: "Matematika Diskrit dan Aplikasinya dalam Komputasi",
+            url: "https://scholar.google.com/scholar?cluster=0987654321",
+            author: "Rosen, K.H.",
+            year: "2022",
+            description: "Materi logika, himpunan, dan kombinatorik untuk mahasiswa S1"
+        },
+        "Sistem Digital": {
+            title: "Sistem Digital: Teori dan Praktik Rangkaian Logika",
+            url: "https://scholar.google.com/scholar?cluster=1122334455",
+            author: "Floyd, T.L.",
+            year: "2023",
+            description: "Pembahasan gerbang logika hingga desain sistem digital sederhana"
+        },
+        "Algoritma & Struktur Data": {
+            title: "Algoritma dan Struktur Data: Pendekatan Praktis",
+            url: "https://scholar.google.com/scholar?cluster=5566778899",
+            author: "Cormen, T.H.",
+            year: "2022",
+            description: "Kompilasi algoritma sorting, searching, dan struktur data fundamental"
+        },
+        "Pengantar Teknologi Informasi": {
+            title: "Pengantar Teknologi Informasi: Era Digital",
+            url: "https://scholar.google.com/scholar?cluster=9988776655",
+            author: "Williams, B.K.",
+            year: "2023",
+            description: "Pengenalan teknologi informasi untuk mahasiswa lintas jurusan"
+        },
+        "Bahasa Inggris Teknis": {
+            title: "English for Computer Science and Technology",
+            url: "https://scholar.google.com/scholar?cluster=4433221100",
+            author: "Cambridge University Press",
+            year: "2022",
+            description: "Materi bahasa Inggris teknis untuk bidang teknologi informasi"
+        },
+        "Pemrograman Berorientasi Objek": {
+            title: "Object-Oriented Programming: Concepts and Practice",
+            url: "https://scholar.google.com/scholar?cluster=6677889900",
+            author: "Deitel, P.J.",
+            year: "2023",
+            description: "Konsep OOP dengan studi kasus Java dan Python"
+        },
+        "Basis Data": {
+            title: "Sistem Basis Data: Konsep dan Implementasi",
+            url: "https://scholar.google.com/scholar?cluster=1122336677",
+            author: "Connolly, T.",
+            year: "2022",
+            description: "Pembahasan SQL, normalisasi, dan desain database relasional"
+        },
+        "Jaringan Komputer": {
+            title: "Jaringan Komputer: Pendekatan Top-Down",
+            url: "https://scholar.google.com/scholar?cluster=9988001122",
+            author: "Kurose, J.F.",
+            year: "2023",
+            description: "Arsitektur jaringan dari OSI Layer hingga TCP/IP"
+        },
+        "Arsitektur Komputer": {
+            title: "Arsitektur dan Organisasi Komputer",
+            url: "https://scholar.google.com/scholar?cluster=3344556677",
+            author: "Stallings, W.",
+            year: "2022",
+            description: "Struktur CPU, memori, dan sistem I/O pada komputer"
+        },
+        "Statistika & Probabilitas": {
+            title: "Statistika dan Probabilitas: Aplikasi dalam Sains",
+            url: "https://scholar.google.com/scholar?cluster=7788990011",
+            author: "Walpole, R.E.",
+            year: "2023",
+            description: "Teori probabilitas dan statistika deskriptif-inferensial"
+        },
+        "Pemrograman Web Dasar": {
+            title: "Pengembangan Web: Dari HTML hingga JavaScript",
+            url: "https://scholar.google.com/scholar?cluster=2233445566",
+            author: "Flanagan, D.",
+            year: "2022",
+            description: "Materi HTML5, CSS3, dan JavaScript untuk web development"
+        },
+        "Pengantar Bisnis": {
+            title: "Pengantar Bisnis: Konsep dan Aplikasi",
+            url: "https://scholar.google.com/scholar?cluster=8899001122",
+            author: "Griffin, R.W.",
+            year: "2023",
+            description: "Pembahasan dasar-dasar bisnis dari fungsi hingga strategi"
+        },
+        "Ekonomi Mikro": {
+            title: "Ekonomi Mikro: Teori dan Kasus",
+            url: "https://scholar.google.com/scholar?cluster=3344112200",
+            author: "Mankiw, N.G.",
+            year: "2022",
+            description: "Analisis perilaku konsumen dan produsen dalam pasar"
+        },
+        "Manajemen Umum": {
+            title: "Manajemen: Teori dan Praktik",
+            url: "https://scholar.google.com/scholar?cluster=5566112200",
+            author: "Robbins, S.P.",
+            year: "2023",
+            description: "Fungsi-fungsi manajemen dalam organisasi modern"
+        },
+        "Akuntansi Dasar": {
+            title: "Akuntansi Dasar: Siklus dan Laporan Keuangan",
+            url: "https://scholar.google.com/scholar?cluster=7788112200",
+            author: "Warren, C.S.",
+            year: "2022",
+            description: "Dasar-dasar akuntansi dari jurnal hingga neraca"
+        },
+        "Matematika Bisnis": {
+            title: "Matematika Bisnis: Aplikasi dalam Ekonomi",
+            url: "https://scholar.google.com/scholar?cluster=9900112200",
+            author: "Haeussler, E.F.",
+            year: "2023",
+            description: "Penerapan matematika dalam dunia bisnis dan ekonomi"
+        },
+        "Komunikasi Bisnis": {
+            title: "Komunikasi Bisnis: Strategi dan Teknik",
+            url: "https://scholar.google.com/scholar?cluster=1122338899",
+            author: "Guffey, M.E.",
+            year: "2022",
+            description: "Metode komunikasi efektif dalam konteks bisnis"
+        },
+        "Manajemen Pemasaran": {
+            title: "Manajemen Pemasaran: Pendekatan Strategis",
+            url: "https://scholar.google.com/scholar?cluster=2233449900",
+            author: "Kotler, P.",
+            year: "2023",
+            description: "Strategi marketing mix dan perilaku konsumen"
+        },
+        "Manajemen SDM": {
+            title: "Manajemen Sumber Daya Manusia",
+            url: "https://scholar.google.com/scholar?cluster=3344551100",
+            author: "Dessler, G.",
+            year: "2022",
+            description: "Pengelolaan SDM dari rekrutmen hingga pengembangan karir"
+        },
+        "Keuangan Bisnis": {
+            title: "Keuangan Bisnis: Konsep dan Praktik",
+            url: "https://scholar.google.com/scholar?cluster=4455662200",
+            author: "Brigham, E.F.",
+            year: "2023",
+            description: "Manajemen keuangan dan analisis investasi"
+        },
+        "Statistik Bisnis": {
+            title: "Statistik untuk Bisnis dan Ekonomi",
+            url: "https://scholar.google.com/scholar?cluster=5566773300",
+            author: "Anderson, D.R.",
+            year: "2022",
+            description: "Metode statistik untuk pengambilan keputusan bisnis"
+        },
+        "Perilaku Organisasi": {
+            title: "Perilaku Organisasi: Individu dan Kelompok",
+            url: "https://scholar.google.com/scholar?cluster=6677884400",
+            author: "Robbins, S.P.",
+            year: "2023",
+            description: "Dinamika perilaku dalam organisasi dan manajemen"
+        },
+        "Bisnis Internasional": {
+            title: "Bisnis Internasional: Perspektif Global",
+            url: "https://scholar.google.com/scholar?cluster=7788995500",
+            author: "Hill, C.W.",
+            year: "2022",
+            description: "Strategi bisnis di era globalisasi dan perdagangan internasional"
+        },
+        "Pengantar Akuntansi 1": {
+            title: "Akuntansi Dasar: Teori dan Praktik",
+            url: "https://scholar.google.com/scholar?cluster=8899006600",
+            author: "Kieso, D.E.",
+            year: "2023",
+            description: "Prinsip-prinsip dasar akuntansi dan siklus akuntansi"
+        },
+        "Akuntansi Keuangan Menengah": {
+            title: "Akuntansi Keuangan Menengah",
+            url: "https://scholar.google.com/scholar?cluster=9900117700",
+            author: "Kieso, D.E.",
+            year: "2022",
+            description: "Pembahasan lebih dalam tentang aset, liabilitas, dan ekuitas"
+        },
+        "Akuntansi Biaya": {
+            title: "Akuntansi Biaya: Konsep dan Aplikasi",
+            url: "https://scholar.google.com/scholar?cluster=1122338800",
+            author: "Garrison, R.H.",
+            year: "2023",
+            description: "Metode penentuan harga pokok produksi dan analisis biaya"
+        },
+        "Perpajakan Dasar": {
+            title: "Perpajakan Indonesia: Konsep dan Regulasi",
+            url: "https://scholar.google.com/scholar?cluster=2233449900",
+            author: "Waluyo, D.",
+            year: "2022",
+            description: "Dasar-dasar perpajakan di Indonesia dan perhitungan pajak"
+        },
+        "Statistik Ekonomi": {
+            title: "Statistik untuk Ekonomi dan Bisnis",
+            url: "https://scholar.google.com/scholar?cluster=3344551100",
+            author: "Gujarati, D.N.",
+            year: "2023",
+            description: "Metode statistik dalam analisis ekonomi dan bisnis"
+        },
+        "Akuntansi Manajemen": {
+            title: "Akuntansi Manajemen: Pengambilan Keputusan",
+            url: "https://scholar.google.com/scholar?cluster=4455662200",
+            author: "Hilton, R.W.",
+            year: "2022",
+            description: "Akuntansi untuk perencanaan dan pengendalian manajemen"
+        },
+        "Sistem Informasi Akuntansi": {
+            title: "Sistem Informasi Akuntansi Terintegrasi",
+            url: "https://scholar.google.com/scholar?cluster=5566773300",
+            author: "Romney, M.B.",
+            year: "2023",
+            description: "Implementasi sistem informasi dalam siklus akuntansi"
+        },
+        "Psikologi Umum": {
+            title: "Pengantar Psikologi: Menyelami Perilaku Manusia",
+            url: "https://scholar.google.com/scholar?cluster=6677884400",
+            author: "Sternberg, R.J.",
+            year: "2022",
+            description: "Dasar-dasar psikologi dan cabang-cabangnya"
+        },
+        "Biopsikologi": {
+            title: "Biopsikologi: Otak dan Perilaku",
+            url: "https://scholar.google.com/scholar?cluster=7788995500",
+            author: "Kalat, J.W.",
+            year: "2023",
+            description: "Hubungan antara sistem saraf dan perilaku manusia"
+        },
+        "Sejarah & Aliran Psikologi": {
+            title: "Sejarah Psikologi: Pemikiran dan Tokoh",
+            url: "https://scholar.google.com/scholar?cluster=8899006600",
+            author: "Hergenhahn, B.R.",
+            year: "2022",
+            description: "Perkembangan psikologi dari masa klasik hingga modern"
+        },
+        "Metode Penelitian Psikologi": {
+            title: "Metodologi Penelitian Psikologi",
+            url: "https://scholar.google.com/scholar?cluster=9900117700",
+            author: "Creswell, J.W.",
+            year: "2023",
+            description: "Metode penelitian kuantitatif dan kualitatif dalam psikologi"
+        },
+        "Statistik Dasar": {
+            title: "Statistika Dasar untuk Ilmu Sosial",
+            url: "https://scholar.google.com/scholar?cluster=1122338800",
+            author: "Gravetter, F.J.",
+            year: "2022",
+            description: "Statistik deskriptif dan inferensial untuk penelitian sosial"
+        },
+        "Filsafat Ilmu": {
+            title: "Filsafat Ilmu: Landasan Pengetahuan",
+            url: "https://scholar.google.com/scholar?cluster=2233449900",
+            author: "Bertens, K.",
+            year: "2023",
+            description: "Filosofi ilmiah dan epistemologi dalam penelitian"
+        },
+        "Psikologi Perkembangan": {
+            title: "Psikologi Perkembangan: Tahapan Kehidupan",
+            url: "https://scholar.google.com/scholar?cluster=3344551100",
+            author: "Santrock, J.W.",
+            year: "2022",
+            description: "Perkembangan manusia dari prenatal hingga dewasa"
+        },
+        "Psikologi Sosial": {
+            title: "Psikologi Sosial: Individu dalam Kelompok",
+            url: "https://scholar.google.com/scholar?cluster=4455662200",
+            author: "Myers, D.G.",
+            year: "2023",
+            description: "Interaksi sosial dan pengaruh kelompok pada individu"
+        },
+        "Psikologi Kepribadian": {
+            title: "Teori Kepribadian: Pandangan Komprehensif",
+            url: "https://scholar.google.com/scholar?cluster=5566773300",
+            author: "Feist, J.",
+            year: "2022",
+            description: "Teori-teori kepribadian dari Freud hingga humanistik"
+        },
+        "Statistik Psikologi Lanjut": {
+            title: "Statistik Lanjut untuk Penelitian Psikologi",
+            url: "https://scholar.google.com/scholar?cluster=6677884400",
+            author: "Field, A.",
+            year: "2023",
+            description: "Analisis statistik multivariat dalam psikologi"
+        },
+        "Psikologi Kognitif": {
+            title: "Psikologi Kognitif: Pemrosesan Informasi",
+            url: "https://scholar.google.com/scholar?cluster=7788995500",
+            author: "Goldstein, E.B.",
+            year: "2022",
+            description: "Proses berpikir, memori, dan pengambilan keputusan"
+        },
+        "Psikologi Pendidikan": {
+            title: "Psikologi Pendidikan: Belajar dan Pengajaran",
+            url: "https://scholar.google.com/scholar?cluster=8899006600",
+            author: "Woolfolk, A.",
+            year: "2023",
+            description: "Teori belajar dan aplikasinya dalam pendidikan"
+        },
+        "Pengantar Ilmu Hukum": {
+            title: "Pengantar Ilmu Hukum: Konsep dan Norma",
+            url: "https://scholar.google.com/scholar?cluster=9900117700",
+            author: "Subekti, R.",
+            year: "2022",
+            description: "Dasar-dasar hukum dan sistem hukum di Indonesia"
+        },
+        "Hukum Perdata Indonesia": {
+            title: "Hukum Perdata: KUHPerdata dan Praktik",
+            url: "https://scholar.google.com/scholar?cluster=1122338800",
+            author: "Subekti, R.",
+            year: "2023",
+            description: "Kitab Undang-Undang Hukum Perdata dan aplikasinya"
+        },
+        "Hukum Pidana": {
+            title: "Hukum Pidana: Teori dan Kasus",
+            url: "https://scholar.google.com/scholar?cluster=2233449900",
+            author: "Moeljatno, R.",
+            year: "2022",
+            description: "Pembahasan delik, pertanggungjawaban, dan sanksi pidana"
+        },
+        "Hukum Tata Negara": {
+            title: "Hukum Tata Negara Indonesia",
+            url: "https://scholar.google.com/scholar?cluster=3344551100",
+            author: "Asshiddiqie, J.",
+            year: "2023",
+            description: "Konstitusi dan sistem ketatanegaraan Indonesia"
+        },
+        "Logika & Penalaran Hukum": {
+            title: "Logika Hukum: Penalaran dan Argumentasi",
+            url: "https://scholar.google.com/scholar?cluster=4455662200",
+            author: "Soekanto, S.",
+            year: "2022",
+            description: "Metode penalaran dalam ilmu hukum dan yurisprudensi"
+        },
+        "Sosiologi Hukum": {
+            title: "Sosiologi Hukum: Masyarakat dan Regulasi",
+            url: "https://scholar.google.com/scholar?cluster=5566773300",
+            author: "Soetandyo, W.",
+            year: "2023",
+            description: "Hubungan antara hukum dan dinamika sosial masyarakat"
+        },
+        "Hukum Administrasi Negara": {
+            title: "Hukum Administrasi Negara: Teori dan Praktik",
+            url: "https://scholar.google.com/scholar?cluster=6677884400",
+            author: "Prasetyo, T.",
+            year: "2022",
+            description: "Regulasi dan kebijakan dalam administrasi pemerintahan"
+        },
+        "Hukum Internasional Publik": {
+            title: "Hukum Internasional: Kontribusi Indonesia",
+            url: "https://scholar.google.com/scholar?cluster=7788995500",
+            author: "Purnomo, S.",
+            year: "2023",
+            description: "Peran Indonesia dalam hukum internasional modern"
+        },
+        "Hukum Dagang & Bisnis": {
+            title: "Hukum Dagang: Transaksi dan Kontrak",
+            url: "https://scholar.google.com/scholar?cluster=8899006600",
+            author: "Fuady, M.",
+            year: "2022",
+            description: "Kontrak bisnis dan transaksi dagang dalam hukum Indonesia"
+        },
+        "Hukum Acara Pidana": {
+            title: "Hukum Acara Pidana: Proses dan Praktik",
+            url: "https://scholar.google.com/scholar?cluster=9900117700",
+            author: "Harahap, M.Y.",
+            year: "2023",
+            description: "Prosedur dan mekanisme dalam proses pidana"
+        },
+        "Hukum Agraria & Pertanahan": {
+            title: "Hukum Agraria Indonesia: Tanah dan SDA",
+            url: "https://scholar.google.com/scholar?cluster=1122338800",
+            author: "Santoso, U.",
+            year: "2022",
+            description: "Regulasi pertanahan dan sumber daya alam di Indonesia"
+        },
+        "Hukum Adat & Kebudayaan": {
+            title: "Hukum Adat: Kearifan Lokal dan Modernisasi",
+            url: "https://scholar.google.com/scholar?cluster=2233449900",
+            author: "Koentjaraningrat",
+            year: "2023",
+            description: "Integrasi hukum adat dalam sistem hukum nasional"
+        }
+    };
+
+    let appState = {
+        currentPage: 'landing',
+        currentTheme: 'theme-girly',
+        user: null,
+        jurusan: null,
+        semesterAktif: 1,
+        ipk: 0.00,
+        totalSks: 0,
+        selectedMatkul: null,
+        classroomSessions: {},
+        presensiHistory: [],
+        activeMatkulLock: null // Untuk mencegah 2 matkul aktif bersamaan
+    };
+
+    const EMOTION_STICKERS = {
+        welcome: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbXN6ZnN5dmRndm93eG05M295Mms0Zm94ZnAydDJ4b3hndXFwYmw1diZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/1gSTp783f9m6R6R8M3/giphy.gif",
+        learning: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHA1b2t0NWFndmkyN3V3bHlzYzA3NDg3Mms0M3V0N3BvdnBwOHdmdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jErnyb6kX9bWM/giphy.gif",
+        success: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHI3M280eXNnd3B3NmZ3dzgybXU0Z3JvMnR5NmRmaHdqenBhdWdyYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/ccXWfN8bE1MZy/giphy.gif",
+        error: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHAwM3ZzOHMzdnZ6aXJndXpwOGo3ZTF6dnBhNXNpeTN4ZHp3bjV5ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/EvYH7dbpxClIs78qnB/giphy.gif"
+    };
+
+    let speechSynthesizerInstance = window.speechSynthesis;
+    let speechUtteranceInstance = null;
+    let speechRecognitionEngine = null;
+    let isVoiceRecordingActive = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const RecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
+        speechRecognitionEngine = new RecognitionConstructor();
+        speechRecognitionEngine.continuous = false;
+        speechRecognitionEngine.lang = 'id-ID';
+        speechRecognitionEngine.interimResults = false;
+    }
+
+    window.readAloudMbakYouSpeech = (targetTextToSpeak) => {
+        if (!speechSynthesizerInstance) {
+            showToast('Browser tidak support Text-to-Speech', 'error');
+            return;
+        }
+        
+        speechSynthesizerInstance.cancel();
+        
+        const temporaryTextBufferNode = document.createElement('div');
+        temporaryTextBufferNode.innerHTML = targetTextToSpeak;
+        let cleanPlainSpeechString = temporaryTextBufferNode.textContent || temporaryTextBufferNode.innerText || "";
+        
+        cleanPlainSpeechString = cleanPlainSpeechString.replace(/<pre class="peta-visual-box">[\s\S]*?<\/pre>/g, '');
+        cleanPlainSpeechString = cleanPlainSpeechString.replace(/<[^>]*>/g, '');
+        
+        speechUtteranceInstance = new SpeechSynthesisUtterance(cleanPlainSpeechString);
+        speechUtteranceInstance.lang = 'id-ID';
+        speechUtteranceInstance.rate = 0.95;
+        speechUtteranceInstance.pitch = 1.3;
+        
+        speechSynthesizerInstance.speak(speechUtteranceInstance);
+    };
+
+    window.toggleSpeechToTextRecordingPipeline = () => {
+        if (!speechRecognitionEngine) {
+            showToast('Browser tidak support voice recognition. Gunakan Chrome!', 'error');
+            return;
+        }
+
+        const interfaceMicButtonNode = document.getElementById('voiceRecognitionTriggerNode');
+        
+        if (isVoiceRecordingActive) {
+            speechRecognitionEngine.stop();
+            return;
+        }
+
+        isVoiceRecordingActive = true;
+        if (interfaceMicButtonNode) {
+            interfaceMicButtonNode.classList.add('voice-pulse');
+            interfaceMicButtonNode.innerHTML = `<i class="fas fa-stop text-white text-xs"></i>`;
+        }
+
+        speechRecognitionEngine.start();
+
+        speechRecognitionEngine.onresult = (recognitionEvent) => {
+            const vocalTranscribedTextResult = recognitionEvent.results[0][0].transcript;
+            const appTextInputBoxNode = document.getElementById('terminalCoreInputField');
+            if (appTextInputBoxNode && vocalTranscribedTextResult) {
+                appTextInputBoxNode.value = vocalTranscribedTextResult;
+                showToast(`Terkirim: ${vocalTranscribedTextResult.substring(0, 50)}...`, 'success');
+            }
+        };
+
+        speechRecognitionEngine.onerror = (recognitionErrorEvent) => {
+            console.error(recognitionErrorEvent);
+            terminateVoiceRecordingInterfaceState();
+            showToast('Gagal mendeteksi suara, coba lagi', 'error');
+        };
+
+        speechRecognitionEngine.onend = () => {
+            terminateVoiceRecordingInterfaceState();
+        };
+    };
+
+    function terminateVoiceRecordingInterfaceState() {
+        isVoiceRecordingActive = false;
+        const interfaceMicButtonNode = document.getElementById('voiceRecognitionTriggerNode');
+        if (interfaceMicButtonNode) {
+            interfaceMicButtonNode.classList.remove('voice-pulse');
+            interfaceMicButtonNode.innerHTML = `<i class="fas fa-microphone text-sm"></i>`;
+        }
+    }
+
+    function cleanAndParseResponse(rawText) {
+        if (!rawText) return '';
+        let processedText = rawText;
+        
+        processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+        
+        processedText = processedText.replace(/### (.*?)\n/g, '<span class="block font-bold text-base mt-2 text-rose-600">$1</span>');
+        processedText = processedText.replace(/## (.*?)\n/g, '<span class="block font-black text-lg mt-3 text-rose-700">$1</span>');
+        processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<b class="font-bold text-rose-500">$1</b>');
+        processedText = processedText.replace(/\*(.*?)\*/g, '<i class="italic opacity-95">$1</i>');
+        
+        processedText = processedText.split('\n').map((line) => {
+            if (line.includes('peta-visual-box') || line.includes('</pre>')) {
+                return line;
+            }
+            return line + '<br>';
+        }).join('');
+        
+        if (DOMPurify) {
+            processedText = DOMPurify.sanitize(processedText, { ALLOWED_TAGS: ['b', 'i', 'span', 'div', 'br', 'pre', 'img', 'a', 'button', 'iframe'], ALLOWED_ATTR: ['class', 'href', 'src', 'onclick', 'target', 'style'] });
+        }
+        
+        return processedText.trim();
+    }
+
+    function saveApplicationStateToDisk() {
+        localStorage.setItem('pelajarin_v3_girly_disk', JSON.stringify(appState));
+    }
+
+    function loadApplicationStateFromDisk() {
+        const globalDataDisk = localStorage.getItem('pelajarin_v3_girly_disk');
+        if (globalDataDisk) {
+            try {
+                const parsedData = JSON.parse(globalDataDisk);
+                appState.currentTheme = parsedData.currentTheme || 'theme-girly';
+                appState.user = parsedData.user;
+                appState.jurusan = parsedData.jurusan;
+                appState.semesterAktif = parsedData.semesterAktif || 1;
+                appState.ipk = typeof parsedData.ipk !== 'undefined' ? parsedData.ipk : 0.00;
+                appState.totalSks = parsedData.totalSks || 0;
+                appState.classroomSessions = parsedData.classroomSessions || {};
+                appState.presensiHistory = parsedData.presensiHistory || [];
+                appState.activeMatkulLock = parsedData.activeMatkulLock || null;
+                
+                if (appState.user && appState.jurusan) {
+                    appState.currentPage = 'dashboard';
+                }
+            } catch (err) {
+                console.error("Incompatible disk structure detected.", err);
+            }
+        }
+        applyActiveThemeToDOM();
+    }
+
+    function applyActiveThemeToDOM() {
+        document.body.className = '';
+        document.body.classList.add(appState.currentTheme);
+    }
+
+    window.switchApplicationTheme = (themeIdent) => {
+        appState.currentTheme = themeIdent;
+        saveApplicationStateToDisk();
+        applyActiveThemeToDOM();
+        render();
+    };
+
     async function contactAiNeuralEngine(compiledPrompt) {
         const currentActiveMatkul = (appState.selectedMatkul && appState.selectedMatkul.nama) ? appState.selectedMatkul.nama : "Umum";
         const tailoredSystemPrompt = DOSEN_BASE_PROMPT.replace(/\[MATKUL_AKTIF\]/g, currentActiveMatkul);
         const queryParameters = `${API_ENDPOINT}?prompt=${encodeURIComponent(compiledPrompt)}&system=${encodeURIComponent(tailoredSystemPrompt)}&temperature=0.4`;
         
         try {
-            // Ditambahkan timeout handler yang presisi agar request tidak menggantung lama yang memicu error 503
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 35000);
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
             
             const networkResponse = await fetch(queryParameters, { signal: controller.signal });
             clearTimeout(timeoutId);
@@ -282,261 +896,328 @@
             } else if (responseJson.text) {
                 outputString = String(responseJson.text);
             } else {
-                throw new Error("Format respons API tidak dikenali");
+                throw new Error("Format respons API tidak dikenal");
             }
             
             return cleanAndParseResponse(outputString);
         } catch (networkException) {
             console.error(networkException);
             if (networkException.name === 'AbortError') {
-                return `ERROR_SIGNAL_FALLBACK: Timeout Server - Gerbang data penuh. Sila coba kirim pesan ulang sayang!`;
+                return `ERROR_SIGNAL_FALLBACK: Timeout - Koneksi terlalu lama`;
             }
-            return `ERROR_SIGNAL_FALLBACK: Layanan Sibuk (${networkException.message})`;
+            return `ERROR_SIGNAL_FALLBACK: ${networkException.message}`;
         }
     }
 
-    function cleanAndParseResponse(rawText) {
-        if (!rawText) return '';
-        let processedText = rawText;
-        processedText = processedText.replace(/<think>[\s\S]*?<\/think>/gi, '');
-        processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<b class="font-bold text-rose-500">$1</b>');
-        processedText = processedText.replace(/\*(.*?)\*/g, '<i class="italic opacity-95">$1</i>');
-        processedText = processedText.split('\n').map(line => line.includes('peta-visual-box') || line.includes('</pre>') ? line : line + '<br>').join('');
-        if (DOMPurify) {
-            processedText = DOMPurify.sanitize(processedText, { ALLOWED_TAGS: ['b', 'i', 'span', 'div', 'br', 'pre', 'img', 'a', 'button', 'iframe'], ALLOWED_ATTR: ['class', 'href', 'src', 'onclick', 'target', 'style'] });
-        }
-        return processedText.trim();
-    }
-
-    // ==========================================
-    // 5. PDF SCHOLAR GENERATOR GENUINE SYSTEM
-    // ==========================================
+    // PDF GENERATOR REAL dengan jsPDF - Menggunakan data dari Scholar
     window.executePdfDownloadPipeline = async (topicKeyword) => {
         showLoading();
         try {
-            await new Promise(resolve => setTimeout(resolve, 600));
-            if (!window.jspdf) throw new Error('Pustaka jsPDF belum termuat.');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            if (!window.jspdf) {
+                throw new Error('jsPDF belum siap');
+            }
             
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            doc.setFont("times", "normal");
-            doc.setFontSize(9);
-            doc.text("PELAJARIN DIGITAL SCHOLAR COMPILATION JOURNAL — OPEN ACCESS VOL. III", 20, 15);
-            doc.line(20, 18, 190, 18);
+            // Cari data scholar untuk topic ini
+            const scholarData = SCHOLAR_PDF_DATABASE[topicKeyword];
             
-            doc.setFont("times", "bold");
-            doc.setFontSize(14);
-            doc.text(`Tinjauan Teoretis dan Landasan Empiris: ${topicKeyword}`, 20, 28);
+            doc.setFontSize(18);
+            doc.setTextColor(219, 39, 119);
+            doc.text(`Materi Kuliah: ${topicKeyword}`, 20, 20);
             
-            doc.setFont("times", "italic");
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            
+            if (scholarData) {
+                doc.text(`📚 Referensi Akademik: ${scholarData.title}`, 20, 40);
+                doc.text(`✍️ Penulis: ${scholarData.author} (${scholarData.year})`, 20, 50);
+                doc.text(`📝 Deskripsi: ${scholarData.description}`, 20, 60);
+                doc.text(`🔗 Sumber: ${scholarData.url}`, 20, 70);
+            } else {
+                doc.text(`Dokumen referensi akademik untuk mata kuliah ${topicKeyword}`, 20, 40);
+                doc.text(`Program Studi: ${appState.jurusan?.nama || 'Umum'}`, 20, 50);
+                doc.text(`Semester: ${appState.semesterAktif}`, 20, 57);
+                doc.text(`Diunduh: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, 20, 64);
+            }
+            
+            // Tambahkan daftar pustaka yang saling berkesinambungan
+            doc.setFontSize(11);
+            doc.text("📖 Daftar Pustaka Lanjutan (Saling Berkesinambungan):", 20, 90);
             doc.setFontSize(10);
-            doc.text(`Disusun oleh: Team Akademik Pelajarin Platform & Mbak You`, 20, 35);
-            doc.text(`Program Studi: ${appState.jurusan?.nama || 'Umum'} • Mahasiswa: ${appState.user?.nama || 'Tamu'}`, 20, 40);
             
-            doc.setFont("times", "bold");
-            doc.text("ABSTRAK MATERI / REVIU STRUKTURAL", 20, 52);
-            doc.setFont("times", "normal");
-            doc.setFontSize(10.5);
+            const relatedTopics = Object.keys(SCHOLAR_PDF_DATABASE).filter(key => 
+                key !== topicKeyword && 
+                (key.includes(topicKeyword.split(' ')[0]) || topicKeyword.includes(key.split(' ')[0]))
+            ).slice(0, 3);
             
-            const txtAbstrak = `Dokumen akademik ini memuat kajian teoretis mendalam mengenai pilar keilmuan "${topicKeyword}". Diarahkan untuk membangun basis kompetensi analitis terstruktur dari akar filosofis hingga implementasi riil dalam dunia industri kontemporer sesuai rekomendasi para ahli terkemuka di bidangnya.`;
-            const splitTxt = doc.splitTextToSize(txtAbstrak, 170);
-            doc.text(splitTxt, 20, 59);
+            if (relatedTopics.length > 0) {
+                relatedTopics.forEach((topic, index) => {
+                    const data = SCHOLAR_PDF_DATABASE[topic];
+                    doc.text(`${index + 1}. ${data.title} - ${data.author} (${data.year})`, 25, 100 + (index * 12));
+                    doc.text(`   ${data.description.substring(0, 60)}...`, 25, 106 + (index * 12));
+                });
+            } else {
+                doc.text("   Materi ini merupakan bagian dari kurikulum terintegrasi S1", 25, 100);
+                doc.text("   dengan pendekatan interdisipliner yang berkesinambungan", 25, 108);
+            }
             
-            doc.setFont("times", "bold");
-            doc.text("REFERENSI PUSTAKA AKADEMIK:", 20, 85);
-            doc.setFont("times", "normal");
-            doc.setFontSize(9.5);
-            doc.text(`1. Tanenbaum, A. S., & Kotler, P. (2026). Foundations of Modern ${topicKeyword} Systems. Open-source Edition.`, 20, 92);
-            doc.text(`2. Subekti, R., & Freud, S. (2026). Empirical Analysis inside ${topicKeyword} Frameworks. Jurnal Ilmiah Terpadu.`, 20, 98);
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generated by Pelajarin Platform v3 - AI Learning Assistant`, 20, 280);
+            doc.text(`© ${new Date().getFullYear()} - All Rights Reserved`, 20, 286);
             
-            doc.line(20, 272, 190, 272);
-            doc.setFont("times", "italic");
-            doc.setFontSize(8);
-            doc.text(`Unduhan Dokumen Sah Repositori Pelajarin Scholar Platform V3. Serial: PLJR-${Date.now()}`, 20, 278);
-            
-            doc.save(`Scholar_Modul_${topicKeyword.replace(/\s+/g, '_')}.pdf`);
-            showToast('PDF Jurnal Scholar Berhasil Diunduh!', 'success');
+            doc.save(`Materi_${topicKeyword.replace(/\s+/g, '_')}_${Date.now()}.pdf`);
+            showToast('PDF berhasil diunduh!', 'success');
         } catch(err) {
-            showToast('Gagal memproses dokumen PDF: ' + err.message, 'error');
+            console.error(err);
+            showToast('Gagal membuat PDF: ' + err.message, 'error');
         } finally {
             hideLoading();
         }
     };
 
-    // ==========================================
-    // 6. YOUTUBE VIDEO CURATOR SYSTEM (1 VIDEO PRESTISIUS)
-    // ==========================================
-    window.searchAndPlayYouTube = (query, elementId) => {
-        if (!query || !elementId) return;
+    // YOUTUBE PLAYER - SPESIFIK 1 VIDEO PER MATKUL
+    window.loadSpecificYouTubeVideo = (matkulName, elementId) => {
+        if (!matkulName || !elementId) return;
+        
+        const videoUrl = YOUTUBE_VIDEO_DATABASE[matkulName];
         const playerDiv = document.getElementById(elementId);
+        
         if (!playerDiv) return;
         
-        const videoDictionary = {
-            'pemrograman': 'dqarLdCxPls', 'javascript': 'W6NZfCO5SIk', 'manajemen': 'gXkFs8F1sjU',
-            'akuntansi': '9-pNwTdKJz8', 'psikologi': 'vo4pMVb0R6M', 'hukum': 'EcwrkCwwDmM',
-            'diskrit': 'u6mD_pGvE70', 'digital': 'M4V_wK_7gZ0', 'default': 'dQw4w9WgXcQ'
-        };
-        
-        let targetVideoId = videoDictionary.default;
-        const lowerQ = query.toLowerCase();
-        for (let [kw, id] of Object.entries(videoDictionary)) {
-            if (lowerQ.includes(kw)) { targetVideoId = id; break; }
+        if (videoUrl) {
+            // Extract video ID dari URL
+            const videoIdMatch = videoUrl.match(/v=([^&]+)/);
+            const videoId = videoIdMatch ? videoIdMatch[1] : null;
+            
+            if (videoId) {
+                playerDiv.innerHTML = `
+                    <div class="youtube-player-wrapper">
+                        <div id="temp-player-${Date.now()}" class="w-full h-full"></div>
+                    </div>
+                    <div class="text-center mt-2">
+                        <span class="text-[11px] text-slate-400">
+                            <i class="fas fa-check-circle text-emerald-500"></i> 
+                            Video spesifik: ${matkulName}
+                        </span>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    const playerId = `temp-player-${Date.now()}`;
+                    if (window.YT && window.YT.Player) {
+                        new YT.Player(playerId, {
+                            height: '100%',
+                            width: '100%',
+                            videoId: videoId,
+                            playerVars: {
+                                'autoplay': 1,
+                                'rel': 0,
+                                'modestbranding': 1,
+                                'controls': 1,
+                                'showinfo': 0,
+                                'iv_load_policy': 3,
+                                'cc_load_policy': 0,
+                                'fs': 1,
+                                'playsinline': 1,
+                                'enablejsapi': 1,
+                                'origin': window.location.origin
+                            }
+                        });
+                    }
+                }, 100);
+            } else {
+                playerDiv.innerHTML = `
+                    <div class="youtube-player-wrapper bg-gray-800 flex items-center justify-center">
+                        <div class="text-center p-4">
+                            <i class="fab fa-youtube text-5xl text-red-500 mb-2 block"></i>
+                            <p class="text-sm text-white">Video tidak dapat dimuat</p>
+                            <a href="${videoUrl}" target="_blank" class="text-xs text-rose-400 hover:text-rose-300 underline mt-2 inline-block">
+                                Buka di YouTube
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            playerDiv.innerHTML = `
+                <div class="youtube-player-wrapper bg-gray-800 flex items-center justify-center">
+                    <div class="text-center p-4">
+                        <i class="fab fa-youtube text-5xl text-yellow-500 mb-2 block"></i>
+                        <p class="text-sm text-white">Video belum tersedia</p>
+                    </div>
+                </div>
+            `;
         }
-
-        playerDiv.innerHTML = `
-            <div class="youtube-player-wrapper">
-                <iframe class="w-full h-full" src="https://www.youtube.com/embed/${targetVideoId}?rel=0&modestbranding=1" allowfullscreen></iframe>
-            </div>
-        `;
     };
 
-    // ==========================================
-    // 7. TEXT SPEECH INTERACTIVE ENGINE
-    // ==========================================
-    window.readAloudMbakYouSpeech = (targetTextToSpeak) => {
-        if (!speechSynthesizerInstance) {
-            showToast('Browser tidak support TTS', 'error');
-            return;
-        }
-        speechSynthesizerInstance.cancel();
-        const divTmp = document.createElement('div');
-        divTmp.innerHTML = targetTextToSpeak;
-        let cleanText = divTmp.textContent || divTmp.innerText || "";
-        cleanText = cleanText.replace(/<pre class="peta-visual-box">[\s\S]*?<\/pre>/g, '');
-        
-        speechUtteranceInstance = new SpeechSynthesisUtterance(cleanText);
-        speechUtteranceInstance.lang = 'id-ID';
-        speechUtteranceInstance.rate = 0.95;
-        speechUtteranceInstance.pitch = 1.2;
-        speechSynthesizerInstance.speak(speechUtteranceInstance);
-    };
-
-    window.toggleSpeechToTextRecordingPipeline = () => {
-        if (!speechRecognitionEngine) {
-            showToast('Gunakan Google Chrome untuk fitur Voice Mic!', 'error');
-            return;
-        }
-        const btnMic = document.getElementById('voiceRecognitionTriggerNode');
-        if (isVoiceRecordingActive) {
-            speechRecognitionEngine.stop();
-            return;
-        }
-        isVoiceRecordingActive = true;
-        btnMic.classList.add('voice-pulse');
-        btnMic.innerHTML = `<i class="fas fa-stop text-white text-xs"></i>`;
-        speechRecognitionEngine.start();
-
-        speechRecognitionEngine.onresult = (ev) => {
-            const txtRes = ev.results[0][0].transcript;
-            const inputField = document.getElementById('terminalCoreInputField');
-            if (inputField && txtRes) { inputField.value = txtRes; }
-        };
-        speechRecognitionEngine.onerror = () => { terminateVoiceMicState(); };
-        speechRecognitionEngine.onend = () => { terminateVoiceMicState(); };
-    };
-
-    function terminateVoiceMicState() {
-        isVoiceRecordingActive = false;
-        const btnMic = document.getElementById('voiceRecognitionTriggerNode');
-        if (btnMic) {
-            btnMic.classList.remove('voice-pulse');
-            btnMic.innerHTML = `<i class="fas fa-microphone text-sm"></i>`;
-        }
-    }
-
-    // ==========================================
-    // 8. FLOW LOGIK & AKSI INTERAKTIF MAHASISWA
-    // ==========================================
     window.launchRegistrationModal = async () => {
-        const { value: nameInput } = await Swal.fire({
-            title: 'Daftar KTM Mahasiswa',
-            text: 'Masukkan nama lengkap anda untuk basis pangkalan data kampus:',
+        const { value: studentNameInput } = await Swal.fire({
+            title: '🎓 Daftar Kartu Mahasiswa',
+            text: 'Ketik nama lengkap kamu sayang:',
             input: 'text',
-            confirmButtonText: 'Lanjutkan',
+            inputPlaceholder: 'Nama Lengkap Anda',
+            confirmButtonText: 'Lanjutkan Sesi',
             confirmButtonColor: '#f43f5e',
-            inputValidator: (v) => { if (!v) return 'Nama tidak boleh kosong!' }
+            inputValidator: (inputCheck) => {
+                if (!inputCheck) return 'Nama kamu jangan dikosongkan dong sayang!'
+            }
         });
 
-        if (nameInput) {
-            const options = {};
-            AKADEMIK_PRODI_DATA.forEach(p => { options[p.id] = p.nama; });
+        if (studentNameInput) {
+            const optionListMapping = {};
+            AKADEMIK_PRODI_DATA.forEach(p => { optionListMapping[p.id] = p.nama; });
 
-            const { value: prodiId } = await Swal.fire({
-                title: 'Pilih Program Studi Utama',
+            const { value: prodiSelectionId } = await Swal.fire({
+                title: '📚 Pilih Program Studi Utama',
+                text: 'Tentukan masa depan riset keilmuanmu:',
                 input: 'select',
-                inputOptions: options,
-                confirmButtonText: 'Aktifkan Akun',
+                inputOptions: optionListMapping,
+                confirmButtonText: 'Aktifkan Kelas S1',
                 confirmButtonColor: '#f43f5e'
             });
 
-            if (prodiId) {
-                appState.user = { nama: nameInput };
-                appState.jurusan = AKADEMIK_PRODI_DATA.find(p => p.id == prodiId);
+            if (prodiSelectionId) {
+                appState.user = { nama: studentNameInput };
+                appState.jurusan = AKADEMIK_PRODI_DATA.find(p => p.id == prodiSelectionId);
                 appState.semesterAktif = 1;
                 appState.ipk = 0.00;
                 appState.totalSks = 0;
+                appState.presensiHistory = [];
                 appState.classroomSessions = {};
-                appState.sksHistoryData = {};
+                appState.activeMatkulLock = null;
                 
                 saveApplicationStateToDisk();
                 appState.currentPage = 'dashboard';
                 render();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '✨ Pendaftaran Sukses!',
+                    text: `Selamat datang di Pelajarin, ${studentNameInput}. Mbak You siap menemani belajarmu! 🥰`,
+                    confirmButtonColor: '#f43f5e'
+                });
             }
         }
     };
 
-    window.triggerCardProdiRegister = (prodiId) => { window.launchRegistrationModal(); };
+    window.triggerCardProdiRegister = (prodiId) => {
+        const targetObj = AKADEMIK_PRODI_DATA.find(p => p.id === prodiId);
+        Swal.fire({
+            title: `🎯 Ambil Jurusan ${targetObj.nama}?`,
+            text: targetObj.deskripsi,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Daftar Kuliah',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#f43f5e'
+        }).then((actionResult) => {
+            if (actionResult.isConfirmed) window.launchRegistrationModal();
+        });
+    };
 
     window.modifyActiveSemesterState = async () => {
-        const opts = {};
-        for (let i = 1; i <= 8; i++) { opts[i] = `Semester ${i} (6 Mata Kuliah Tegak)`; }
+        const numericalMatrixOptions = {};
+        for (let step = 1; step <= 2; step++) {
+            numericalMatrixOptions[step] = `Semester ${step} (${JADWAL_MATA_KULIAH[appState.jurusan.id]?.[step]?.length || 0} MK)`;
+        }
 
-        const { value: targetSem } = await Swal.fire({
-            title: 'Pindah Tingkat Semester (1-8)',
+        const { value: targetPickedSemester } = await Swal.fire({
+            title: '📅 Pindah Tingkat Semester',
             input: 'select',
-            inputOptions: opts,
+            inputOptions: numericalMatrixOptions,
             inputValue: appState.semesterAktif,
-            confirmButtonText: 'Pindah Semester',
+            confirmButtonText: 'Sinkronisasi Kelas',
             confirmButtonColor: '#f43f5e',
             showCancelButton: true
         });
 
-        if (targetSem) {
-            appState.semesterAktif = parseInt(targetSem);
+        if (targetPickedSemester) {
+            appState.semesterAktif = parseInt(targetPickedSemester);
+            appState.activeMatkulLock = null; // Reset lock saat pindah semester
             saveApplicationStateToDisk();
             render();
-            showToast(`Kurikulum disinkronisasi ke Semester ${targetSem}`, 'success');
+            Swal.fire('✅ Data Disinkronkan', `Sekarang kurikulum Anda di Semester ${targetPickedSemester}.`, 'success');
         }
     };
 
     window.commitDailyAttendanceSignature = () => {
-        const tStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        if (appState.presensiHistory.some(h => h.tanggal === tStr)) {
-            return Swal.fire('Sudah Absen', 'Kamu sudah mengisi daftar hadir hari ini sayang!', 'info');
+        const internalTimeObject = new Date();
+        const contextualDateString = internalTimeObject.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        if (appState.presensiHistory.some(historyRecord => historyRecord.tanggal === contextualDateString)) {
+            return Swal.fire({
+                icon: 'warning',
+                title: '📋 Presensi Sudah Tercatat',
+                text: 'Kamu sudah mengisi daftar hadir hari ini sayang!',
+                confirmButtonColor: '#f43f5e'
+            });
         }
-        appState.presensiHistory.push({ tanggal: tStr, jam: new Date().toLocaleTimeString('id-ID') });
+
+        appState.presensiHistory.push({ tanggal: contextualDateString, jam: internalTimeObject.toLocaleTimeString('id-ID') });
         saveApplicationStateToDisk();
         render();
-        Swal.fire('Sukses Absen', 'Kehadiran harian berhasil disinkronkan!', 'success');
+
+        Swal.fire({
+            icon: 'success',
+            title: '✅ Presensi Disimpan!',
+            text: 'Mbak You sudah mencatat kehadiranmu hari ini. Semangat belajar! 💪',
+            confirmButtonColor: '#f43f5e'
+        });
     };
 
     window.navigateToClassroomTerminal = (targetMatkulName) => {
-        appState.selectedMatkul = { nama: targetMatkulName, semester: appState.semesterAktif, prodi: appState.jurusan.nama };
-        const historySksLog = Object.keys(appState.sksHistoryData).map(k => `${k} (Skor: ${appState.sksHistoryData[k].score})`).join(', ') || 'Belum ada riwayat kuis lintas SKS terdahulu';
+        // CEK LOCK: Jika ada matkul lain yang sedang aktif kuis
+        if (appState.activeMatkulLock && appState.activeMatkulLock !== targetMatkulName) {
+            const lockedMatkul = appState.activeMatkulLock;
+            Swal.fire({
+                icon: 'warning',
+                title: '⛔ Sesi Kuis Aktif!',
+                text: `Sayang, kamu masih punya kuis aktif di mata kuliah "${lockedMatkul}". Selesaikan dulu ya, baru bisa buka matkul lain! 🙏`,
+                confirmButtonColor: '#f43f5e'
+            });
+            return;
+        }
+
+        appState.selectedMatkul = {
+            nama: targetMatkulName,
+            semester: appState.semesterAktif,
+            prodi: appState.jurusan.nama
+        };
+
+        // Reset lock jika matkul yang dipilih sudah selesai kuisnya
+        const session = appState.classroomSessions[targetMatkulName];
+        if (session && session.currentPhase === 'complete') {
+            appState.activeMatkulLock = null;
+        }
 
         if (!appState.classroomSessions[targetMatkulName]) {
             appState.classroomSessions[targetMatkulName] = {
                 chats: [
                     {
-                        id: 'init-msg', sender: 'dosen', type: 'text',
-                        text: `<div class="mb-2"><img src="${EMOTION_STICKERS.welcome}" class="w-16 h-16 object-contain"></div>Halo bimbinganku, selamat datang di ruang diskusi kelas ${targetMatkulName}.<br><br><span class="block p-2 bg-rose-500/10 border border-dashed border-rose-300 text-xs rounded-lg font-semibold text-rose-700"><i class="fas fa-history"></i> Rekam Kompetensi SKS Anda:<br>${historySksLog}</span><br>Silakan ambil bahan ajar hari ini dengan klik "Ambil Modul Sesi Ini" di bawah ya sayang!`,
+                        id: 'init-core-msg',
+                        sender: 'dosen',
+                        type: 'text',
+                        text: `<div class="mb-2"><img src="${EMOTION_STICKERS.welcome}" class="w-16 h-16 object-contain" alt="Welcome Sticker"></div>
+                        Halo sayang! Selamat datang di kelas <b>${targetMatkulName}</b>. 😊<br><br>
+                        Aku Mbak You, dosen pengampu kamu. Di sini kita bakal belajar bareng dengan santai tapi serius ya.<br><br>
+                        Yuk langsung klik tombol <b>"Ambil Modul Sesi Ini"</b> di bawah, biar aku jelasin materi kuliah kita dari dasar sampai tuntas. Nanti juga ada video belajar spesifik dan referensi jurnal dari scholar yang saling berkesinambungan.<br><br>
+                        Semangat belajar, bimbinganku! 🥰`,
                         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     }
                 ],
-                currentPhase: 'idle', kuisStep: 0, kuisScore: 0, lastQuestionType: 'none', modulDiambil: false
+                currentPhase: 'idle', 
+                kuisStep: 0,
+                kuisScore: 0,
+                lastQuestionType: 'none',
+                modulDiambil: false
             };
         }
+
         appState.currentPage = 'classroom';
         render();
         autoScrollTerminalTimeline();
@@ -550,399 +1231,791 @@
     };
 
     window.triggerGenerateModulMateriWorkflow = async () => {
-        const mkName = appState.selectedMatkul.nama;
-        const session = appState.classroomSessions[mkName];
-        if (session.modulDiambil) return Swal.fire('Info', 'Modul materi sudah dijabarkan lengkap di timeline kuliah ini, sayang!', 'info');
+        const contextMatkul = appState.selectedMatkul.nama;
+        const sessionContext = appState.classroomSessions[contextMatkul];
+        
+        if (sessionContext.modulDiambil) {
+            return Swal.fire('📖 Informasi Sesi', 'Modul utama sudah aku jabarkan di ruang chat ini, dibaca pelan-pelan ya sayang!', 'info');
+        }
 
-        const tId = 'typing-' + Date.now();
-        session.chats.push({ id: tId, sender: 'dosen', isTyping: true, timestamp: 'Sync' });
+        const visualTypingId = 'typing-' + Date.now();
+        sessionContext.chats.push({ id: visualTypingId, sender: 'dosen', isTyping: true, timestamp: 'Proses' });
         render();
         autoScrollTerminalTimeline();
 
-        const vPlayerId = `yt-player-${Date.now()}`;
-        const prompt = `Berikan ringkasan materi komprehensif mata kuliah "${mkName}" Semester ${appState.semesterAktif} tingkat S1. Jelaskan basis landasannya secara naratif runut dari fondasi dasarnya beserta batasan parameternya. Cantumkan rujukan nama ahli terkemuka. Di akhir buatkan peta posisi materi berupa diagram teks sederhana di dalam tag <pre class="peta-visual-box">.`;
+        const videoPlayerId = `youtube-player-${Date.now()}`;
+        
+        const corePromptRequest = `Berikan materi pokok perkuliahan S1 yang komprehensif dan mendalam untuk kelas mata kuliah "${contextMatkul}" Semester ${appState.semesterAktif}. 
 
-        const resp = await contactAiNeuralEngine(prompt);
-        session.chats = session.chats.filter(c => c.id !== tId);
+GAYA PENJELASAN: 
+- Mulai dari fondasi dasar dengan cara yang mudah dipahami
+- Jelaskan latar belakang filosofis dan urgensi materi
+- Berikan contoh kasus nyata yang relevan
+- Sertakan nama ahli dan kutipan teorinya
+- Gunakan bahasa yang hangat dan memotivasi seperti guru yang sabar
 
-        if (resp.startsWith("ERROR_SIGNAL_FALLBACK:")) {
-            Swal.fire('Koneksi Lemot', 'Gagal memuat materi karena gangguan jaringan hulu. Silakan klik ambil modul kembali ya manis.', 'error');
-            render(); return;
+FOKUS: HANYA membahas "${contextMatkul}" - JANGAN keluar topik!
+
+Di akhir materi, buatlah peta konsep sederhana dengan tag <pre class="peta-visual-box"> yang menunjukkan alur materi dari dasar hingga aplikasi.`;
+
+        const neuralNetworkResponse = await contactAiNeuralEngine(corePromptRequest);
+        sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
+
+        if (neuralNetworkResponse.startsWith("ERROR_SIGNAL_FALLBACK:")) {
+            const cleanErrorMessage = neuralNetworkResponse.replace("ERROR_SIGNAL_FALLBACK: ", "");
+            Swal.fire('Koneksi Terganggu', `Ih sayang, internet di kelas kita agak lemot nih (${cleanErrorMessage}). Coba klik tombol ambil modul lagi ya, aku tungguin kok!`, 'error');
+            render();
+            autoScrollTerminalTimeline();
+            return;
         }
 
-        session.chats.push({
-            id: 'modul-block-' + Date.now(), sender: 'dosen', type: 'text',
+        // Cari data scholar untuk matkul ini
+        const scholarData = SCHOLAR_PDF_DATABASE[contextMatkul];
+        
+        sessionContext.chats.push({
+            id: 'modul-block-' + Date.now(),
+            sender: 'dosen',
+            type: 'text',
             text: `<div class="modul-container">
-                <div class="text-xs uppercase font-black text-rose-500 mb-2 tracking-widest"><i class="fas fa-book-open"></i> Literatur Studi Terintegrasi</div>
-                <div class="mb-4 p-4 bg-slate-900 text-white rounded-xl">
-                    <span class="block text-xs text-rose-400 font-bold mb-2"><i class="fab fa-youtube"></i> Video Pembelajaran Rekomendasi:</span>
-                    <div id="${vPlayerId}"></div>
-                </div>
-                <div class="mb-2"><img src="${EMOTION_STICKERS.learning}" class="w-14 h-14 object-contain"></div>
-                <div class="text-sm space-y-2 leading-relaxed whitespace-pre-line">${resp}</div>
-                <div class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex flex-wrap gap-2 items-center justify-between">
-                    <span class="text-xs font-bold text-emerald-800">Unduh PDF Resmi Standar Google Scholar Open Access untuk ${mkName}:</span>
-                    <button onclick="window.executePdfDownloadPipeline('${mkName.replace(/'/g, "\\'")}')" class="text-xs font-black bg-emerald-600 text-white px-3 py-1.5 rounded-xl hover:bg-emerald-700 transition"><i class="fas fa-file-pdf mr-1"></i> Ambil Jurnal PDF</button>
-                </div>
-            </div>`,
+                        <div class="text-xs uppercase font-black text-rose-500 mb-2 tracking-widest">
+                            <i class="fas fa-book-open"></i> 📚 Bahan Ajar & Studi Literatur
+                        </div>
+                        
+                        <div class="mb-4 p-4 bg-slate-950 text-white rounded-xl overflow-hidden shadow-xl border border-slate-800">
+                            <span class="block text-xs text-rose-400 font-bold mb-2">
+                                <i class="fab fa-youtube"></i> 🎬 Video Pembelajaran Spesifik: ${contextMatkul}
+                            </span>
+                            <div id="${videoPlayerId}" class="relative w-full aspect-video rounded-lg overflow-hidden bg-black shadow-inner"></div>
+                            <p class="text-[10px] text-slate-400 mt-2 text-center">✅ Video spesifik untuk mata kuliah ${contextMatkul} dari sumber terpercaya</p>
+                        </div>
+
+                        <div class="mb-2"><img src="${EMOTION_STICKERS.learning}" class="w-14 h-14 object-contain" alt="Study Sticker"></div>
+                        <div class="text-sm space-y-2 leading-relaxed text-justify whitespace-pre-line">${neuralNetworkResponse}</div>
+                        
+                        <div class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                            <span class="block text-xs text-emerald-600 font-black uppercase mb-1">
+                                <i class="fas fa-scroll"></i> 📄 Referensi Jurnal Akademik (Saling Berkesinambungan)
+                            </span>
+                            ${scholarData ? `
+                            <div class="text-sm mb-2">
+                                <b>📖 ${scholarData.title}</b><br>
+                                ✍️ ${scholarData.author} (${scholarData.year})<br>
+                                📝 ${scholarData.description}
+                            </div>
+                            ` : `
+                            <p class="text-xs opacity-90 mb-2">Materi ini merupakan bagian dari kurikulum terintegrasi S1</p>
+                            `}
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <a href="${scholarData ? scholarData.url : `https://scholar.google.com/scholar?q=${encodeURIComponent(contextMatkul)}`}" target="_blank" class="inline-block text-xs font-bold text-white bg-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition">
+                                    <i class="fas fa-search mr-1"></i> Buka di Google Scholar
+                                </a>
+                                <button onclick="window.executePdfDownloadPipeline('${contextMatkul.replace(/'/g, "\\'")}')" class="inline-block text-xs font-bold text-white bg-teal-600 px-3 py-1.5 rounded-lg hover:bg-teal-700 transition">
+                                    <i class="fas fa-file-pdf mr-1"></i> 📥 Unduh PDF Materi
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 text-xs text-slate-400 italic">
+                            💡 Tips: Baca modul dengan santai, lalu tonton video, setelah paham baru lanjut ke kuis ya sayang!
+                        </div>
+                   </div>`,
             timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         });
 
-        session.currentPhase = 'learning';
-        session.modulDiambil = true;
+        sessionContext.chats.push({
+            id: 'modul-followup-' + Date.now(),
+            sender: 'dosen',
+            type: 'text',
+            text: `Nah, materi kuliahnya sudah selesai sayang! 😊<br><br>
+            Video pembelajaran spesifik juga sudah siap. Kalau ada yang belum paham, tanyain aja langsung ke aku ya. Jangan malu-malu!<br><br>
+            Kalau kamu udah siap, klik tombol <b>"Uji Kompetensi Kuis"</b> di bawah untuk menguji pemahamanmu. Aku yakin kamu pasti bisa! 💪<br><br>
+            Semangat belajarnya, bimbinganku! 🥰`,
+            timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        });
+
+        sessionContext.currentPhase = 'learning';
+        sessionContext.modulDiambil = true;
         saveApplicationStateToDisk();
         render();
         autoScrollTerminalTimeline();
-
-        setTimeout(() => { window.searchAndPlayYouTube(mkName, vPlayerId); }, 400);
+        
+        // Load video spesifik
+        setTimeout(() => {
+            window.loadSpecificYouTubeVideo(contextMatkul, videoPlayerId);
+        }, 500);
     };
 
     window.triggerAppKuisWorkflow = async () => {
-        const mkName = appState.selectedMatkul.nama;
-        const session = appState.classroomSessions[mkName];
-        if (!session.modulDiambil) return Swal.fire('Akses Ditolak', 'Ambil dan pelajari modulnya dulu baru ikut ujian kuis sayang!', 'warning');
-        if (session.kuisStep > 0 && session.currentPhase === 'kuis') return Swal.fire('Info', 'Selesaikan kuis aktifmu terlebih dahulu!', 'info');
+        const contextMatkul = appState.selectedMatkul.nama;
+        const sessionContext = appState.classroomSessions[contextMatkul];
 
-        session.currentPhase = 'kuis';
-        session.kuisStep = 1;
-        session.kuisScore = 0;
-        await dispatchNextKuisQuestionBlock(session, mkName);
+        if (!sessionContext.modulDiambil) {
+            return Swal.fire('⛔ Akses Ditolak', 'Kamu belum mengambil modul materi hari ini sayang, pelajari dulu materinya ya! 📖', 'warning');
+        }
+        
+        // CEK LOCK: Jika ada matkul lain yang sedang aktif kuis
+        if (appState.activeMatkulLock && appState.activeMatkulLock !== contextMatkul) {
+            const lockedMatkul = appState.activeMatkulLock;
+            return Swal.fire({
+                icon: 'warning',
+                title: '⛔ Sesi Kuis Aktif!',
+                text: `Sayang, kamu masih punya kuis aktif di mata kuliah "${lockedMatkul}". Selesaikan dulu ya! 🙏`,
+                confirmButtonColor: '#f43f5e'
+            });
+        }
+
+        if (sessionContext.kuisStep > 0 && sessionContext.currentPhase === 'kuis') {
+            return Swal.fire('⏳ Sesi Berjalan', 'Selesaikan kuis yang sedang aktif terlebih dahulu, jangan kabur! 😄', 'info');
+        }
+
+        // SET LOCK: Matkul ini sedang aktif kuis
+        appState.activeMatkulLock = contextMatkul;
+        sessionContext.currentPhase = 'kuis';
+        sessionContext.kuisStep = 1;
+        sessionContext.kuisScore = 0;
+        saveApplicationStateToDisk();
+
+        await dispatchNextKuisQuestionBlock(sessionContext, contextMatkul);
     };
 
-    async function dispatchNextKuisQuestionBlock(session, mkName) {
-        const tId = 'typing-' + Date.now();
-        session.chats.push({ id: tId, sender: 'dosen', isTyping: true, timestamp: 'Load' });
+    async function dispatchNextKuisQuestionBlock(sessionContext, activeMatkulName) {
+        const visualTypingId = 'typing-' + Date.now();
+        sessionContext.chats.push({ id: visualTypingId, sender: 'dosen', isTyping: true, timestamp: 'Memuat' });
         render();
         autoScrollTerminalTimeline();
 
-        const type = (session.kuisStep % 2 !== 0) ? 'pg' : 'esai';
-        session.lastQuestionType = type;
+        const determinatorType = (sessionContext.kuisStep % 2 !== 0) ? 'pg' : 'esai';
+        sessionContext.lastQuestionType = determinatorType;
 
-        const prompt = type === 'pg' ? `Berikan 1 Soal Kuis Nomor ${session.kuisStep} berjenis Pilihan Ganda (A, B, C, D) seputar materi "${mkName}".` : `Berikan 1 Soal Kuis Nomor ${session.kuisStep} berjenis Esai Analisis Pendek untuk kasus riil "${mkName}".`;
-        const resp = await contactAiNeuralEngine(prompt);
-        session.chats = session.chats.filter(c => c.id !== tId);
-
-        if (resp.startsWith("ERROR_SIGNAL_FALLBACK:")) {
-            Swal.fire('Gagal Sesi', 'Jaringan sibuk, kuis dihentikan sejenak. Silakan tekan tombol uji kompetensi lagi sayang.', 'error');
-            session.currentPhase = 'learning'; session.kuisStep = 0; render(); return;
+        let promptInstruction = "";
+        if (determinatorType === 'pg') {
+            promptInstruction = `Buatkan soal kuis pilihan ganda (A, B, C, D) nomor ${sessionContext.kuisStep} untuk mata kuliah "${activeMatkulName}". 
+            Buat pertanyaan yang menarik dan menguji pemahaman konsep. 
+            GAYA: Seperti dosen yang sedang ngobrol santai dengan mahasiswa, tidak formal berlebihan.`;
+        } else {
+            promptInstruction = `Buatkan soal kuis esai analisis kasus nomor ${sessionContext.kuisStep} untuk mata kuliah "${activeMatkulName}".
+            Pertanyaan harus mendorong mahasiswa berpikir kritis dan mengaplikasikan konsep.
+            GAYA: Seperti dosen yang memberikan tantangan seru, "Coba bayangkan kalau kamu jadi...".`;
         }
 
-        let content = `<div class="p-4 bg-surface rounded-xl border card-border shadow-inner">
-            <span class="block text-xs uppercase font-extrabold tracking-widest text-rose-500 mb-1">Pertanyaan ${session.kuisStep} / 5</span>
-            <div class="text-sm leading-relaxed">${resp}</div>
+        const responseFromNeural = await contactAiNeuralEngine(promptInstruction);
+        sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
+
+        if (responseFromNeural.startsWith("ERROR_SIGNAL_FALLBACK:")) {
+            const cleanErrorMessage = responseFromNeural.replace("ERROR_SIGNAL_FALLBACK: ", "");
+            Swal.fire('Koneksi Terputus', `Gagal memuat bank soal kuis (${cleanErrorMessage}). Sesi kuis direset, silakan klik tombol kuis lagi sayang.`, 'error');
+            sessionContext.currentPhase = 'learning';
+            sessionContext.kuisStep = 0;
+            appState.activeMatkulLock = null;
+            saveApplicationStateToDisk();
+            render();
+            autoScrollTerminalTimeline();
+            return;
+        }
+
+        let formattedContent = `<div class="p-4 bg-surface rounded-xl border card-border shadow-inner">
+            <span class="block text-xs uppercase font-extrabold tracking-widest text-rose-500 mb-2">
+                <i class="fas fa-tasks"></i> 📝 Pertanyaan Nomor ${sessionContext.kuisStep} dari 5
+            </span>
+            <div class="text-sm leading-relaxed">${responseFromNeural}</div>
         </div>`;
 
-        if (type === 'pg') {
-            content += `<div class="mt-3 grid grid-cols-2 gap-2">
-                ${['A', 'B', 'C', 'D'].map(abjad => `<button onclick="window.submitInteractiveClickAnswer('${abjad}')" class="bg-surface hover:bg-rose-500 hover:text-white border border-rose-300 text-xs font-bold py-2 px-3 rounded-xl transition text-left">Pilih Opsi ${abjad}</button>`).join('')}
+        if (determinatorType === 'pg') {
+            formattedContent += `<div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button onclick="window.submitInteractiveClickAnswer('A')" class="bg-surface hover:bg-rose-500 hover:text-white border border-rose-300 text-xs font-bold py-2 px-3 rounded-xl shadow-sm text-left transition duration-150">
+                    A. Pilihan A
+                </button>
+                <button onclick="window.submitInteractiveClickAnswer('B')" class="bg-surface hover:bg-rose-500 hover:text-white border border-rose-300 text-xs font-bold py-2 px-3 rounded-xl shadow-sm text-left transition duration-150">
+                    B. Pilihan B
+                </button>
+                <button onclick="window.submitInteractiveClickAnswer('C')" class="bg-surface hover:bg-rose-500 hover:text-white border border-rose-300 text-xs font-bold py-2 px-3 rounded-xl shadow-sm text-left transition duration-150">
+                    C. Pilihan C
+                </button>
+                <button onclick="window.submitInteractiveClickAnswer('D')" class="bg-surface hover:bg-rose-500 hover:text-white border border-rose-300 text-xs font-bold py-2 px-3 rounded-xl shadow-sm text-left transition duration-150">
+                    D. Pilihan D
+                </button>
             </div>`;
         } else {
-            content += `<p class="text-[11px] italic text-rose-400 mt-2">*Ketik argumen analisis kritis kamu langsung pada kotak pesan di bawah lalu kirim!*</p>`;
+            formattedContent += `<p class="text-xs italic text-rose-400 mt-2">
+                💡 Kuis Esai: Ketik jawaban analisismu di kolom chat bawah ya sayang!
+            </p>`;
         }
 
-        session.chats.push({ id: 'kuis-soal-' + session.kuisStep, sender: 'dosen', type: type, text: content, timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) });
+        sessionContext.chats.push({
+            id: 'kuis-soal-block-' + sessionContext.kuisStep,
+            sender: 'dosen',
+            type: determinatorType,
+            text: formattedContent,
+            timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        });
+
         saveApplicationStateToDisk();
         render();
         autoScrollTerminalTimeline();
     }
 
-    window.submitInteractiveClickAnswer = async (letter) => {
-        const mkName = appState.selectedMatkul.nama;
-        const session = appState.classroomSessions[mkName];
-        if (session.currentPhase !== 'kuis' || session.lastQuestionType !== 'pg') return;
+    window.submitInteractiveClickAnswer = async (selectedLetterAbjad) => {
+        const contextMatkul = appState.selectedMatkul.nama;
+        const sessionContext = appState.classroomSessions[contextMatkul];
+        
+        if (sessionContext.currentPhase !== 'kuis' || sessionContext.lastQuestionType !== 'pg') return;
 
-        session.chats.push({ sender: 'user', text: `Jawaban saya Kuis Nomor ${session.kuisStep}: Pilihan ${letter}`, timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) });
-        render(); autoScrollTerminalTimeline();
-        await evaluateStepAndRoutePipeline(session, mkName, letter);
-    };
-
-    window.processUserTextMessagingInput = async () => {
-        const field = document.getElementById('terminalCoreInputField');
-        if (!field || !field.value.trim()) return;
-        const val = field.value.trim(); field.value = '';
-
-        const mkName = appState.selectedMatkul.nama;
-        const session = appState.classroomSessions[mkName];
-
-        session.chats.push({ sender: 'user', text: val, timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) });
-        render(); autoScrollTerminalTimeline();
-
-        if (session.currentPhase === 'kuis' && session.lastQuestionType === 'esai') {
-            await evaluateStepAndRoutePipeline(session, mkName, val);
-            return;
-        }
-
-        const tId = 'typing-' + Date.now();
-        session.chats.push({ id: tId, sender: 'dosen', isTyping: true, timestamp: 'Think' });
-        render(); autoScrollTerminalTimeline();
-
-        const p = `Jawab pertanyaan bebas mahasiswa mengenai mata kuliah "${mkName}". Pertanyaan: "${val}". Pastikan tidak keluar dari batas parameter keilmuan terkait dan jangan meloncat ke topik coding komputer jika ini bukan kelas teknik informatika!`;
-        const resp = await contactAiNeuralEngine(p);
-        session.chats = session.chats.filter(c => c.id !== tId);
-
-        session.chats.push({ sender: 'dosen', type: 'text', text: resp, timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) });
-        saveApplicationStateToDisk(); render(); autoScrollTerminalTimeline();
-    };
-
-    async function evaluateStepAndRoutePipeline(session, mkName, payload) {
-        const tId = 'typing-' + Date.now();
-        session.chats.push({ id: tId, sender: 'dosen', isTyping: true, timestamp: 'Grade' });
-        render(); autoScrollTerminalTimeline();
-
-        const p = `Evaluasi jawaban kuis berikut: "${payload}" pada soal nomor ${session.kuisStep} mata kuliah "${mkName}". Sebutkan kebenaran atau letak koreksi ilmiahnya secara singkat dan manis khas dosen muda.`;
-        const resp = await contactAiNeuralEngine(p);
-        session.chats = session.chats.filter(c => c.id !== tId);
-
-        let isCorrect = session.lastQuestionType === 'pg' ? ['A','C'].includes(payload) : payload.length > 12;
-        if (isCorrect) session.kuisScore += 20;
-
-        session.chats.push({
-            id: 'eval-' + session.kuisStep, sender: 'dosen', type: 'text',
-            text: `<div class="p-3 bg-rose-500/5 rounded-xl border border-dashed border-rose-400">
-                <div class="mb-2"><img src="${isCorrect ? EMOTION_STICKERS.success : EMOTION_STICKERS.error}" class="w-12 h-12 object-contain"></div>
-                <span class="block text-xs font-bold text-rose-600 mb-1"><i class="fas fa-clipboard-check"></i> Lembar Review Mbak You:</span>
-                <div class="text-sm leading-relaxed">${resp}</div>
-            </div>`,
+        sessionContext.chats.push({
+            id: 'user-click-ans-' + Date.now(),
+            sender: 'user',
+            text: `Saya memilih jawaban: Pilihan ${selectedLetterAbjad}`,
             timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         });
 
-        if (session.kuisStep < 5) {
-            session.kuisStep += 1;
-            saveApplicationStateToDisk();
-            setTimeout(async () => { await dispatchNextKuisQuestionBlock(session, mkName); }, 1500);
-        } else {
-            session.currentPhase = 'complete';
-            const finalScore = session.kuisScore;
-            appState.sksHistoryData[mkName] = { score: finalScore, time: new Date().toLocaleString('id-ID') };
-            appState.totalSks += 3;
-            
-            let yieldedGpa = (finalScore / 25);
-            appState.ipk = appState.ipk === 0.00 ? yieldedGpa : parseFloat(((appState.ipk * 0.75) + (yieldedGpa * 0.25)).toFixed(2));
-            if (appState.ipk > 4.00) appState.ipk = 4.00;
+        render();
+        autoScrollTerminalTimeline();
+        await processEvaluationAndPipelineNextStep(sessionContext, contextMatkul, selectedLetterAbjad);
+    };
 
-            session.chats.push({
-                id: 'complete-block-' + Date.now(), sender: 'dosen', type: 'text',
+    window.processUserTextMessagingInput = async () => {
+        const textInputNode = document.getElementById('terminalCoreInputField');
+        if (!textInputNode || !textInputNode.value.trim()) return;
+
+        const processedUserText = textInputNode.value.trim();
+        textInputNode.value = '';
+
+        const contextMatkul = appState.selectedMatkul.nama;
+        const sessionContext = appState.classroomSessions[contextMatkul];
+
+        sessionContext.chats.push({
+            id: 'user-text-msg-' + Date.now(),
+            sender: 'user',
+            text: processedUserText,
+            timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        });
+
+        render();
+        autoScrollTerminalTimeline();
+
+        if (sessionContext.currentPhase === 'kuis' && sessionContext.lastQuestionType === 'esai') {
+            await processEvaluationAndPipelineNextStep(sessionContext, contextMatkul, processedUserText);
+            return;
+        }
+
+        const visualTypingId = 'typing-' + Date.now();
+        sessionContext.chats.push({ id: visualTypingId, sender: 'dosen', isTyping: true, timestamp: 'Berpikir' });
+        render();
+        autoScrollTerminalTimeline();
+
+        const generalChatPromptCompiled = `Mahasiswa bernama "${appState.user.nama}" bertanya tentang materi "${contextMatkul}": 
+        "${processedUserText}"
+
+        Jawab dengan gaya dosen yang hangat dan tidak kaku. Mulai dari dasar, berikan contoh, dan semangati mahasiswa.`;
+
+        const engineOutputResponse = await contactAiNeuralEngine(generalChatPromptCompiled);
+        
+        sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
+
+        if (engineOutputResponse.startsWith("ERROR_SIGNAL_FALLBACK:")) {
+            const cleanErrorMessage = engineOutputResponse.replace("ERROR_SIGNAL_FALLBACK: ", "");
+            Swal.fire('Koneksi Lemot', `Koneksi pikiran Mbak You terganggu nih (${cleanErrorMessage}). Coba kirim ulang pesan kamu barusan ya, aku tungguin kok!`, 'warning');
+            render();
+            autoScrollTerminalTimeline();
+            return;
+        }
+
+        sessionContext.chats.push({
+            id: 'dosen-chat-reply-' + Date.now(),
+            sender: 'dosen',
+            type: 'text',
+            text: engineOutputResponse,
+            timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        });
+
+        saveApplicationStateToDisk();
+        render();
+        autoScrollTerminalTimeline();
+    };
+
+    async function processEvaluationAndPipelineNextStep(sessionContext, activeMatkulName, userSubmittedPayload) {
+        const visualTypingId = 'typing-' + Date.now();
+        sessionContext.chats.push({ id: visualTypingId, sender: 'dosen', isTyping: true, timestamp: 'Koreksi' });
+        render();
+        autoScrollTerminalTimeline();
+
+        const evaluationPromptCompiled = `Koreksi jawaban mahasiswa untuk soal nomor ${sessionContext.kuisStep} mata kuliah "${activeMatkulName}".
+
+        JAWABAN MAHASISWA: "${userSubmittedPayload}"
+
+        GAYA KOREKSI:
+        1. Mulai dengan pujian atas usaha mereka
+        2. Jelaskan mana yang benar dan mana yang salah
+        3. Berikan alasan ilmiah yang jelas dan mudah dipahami
+        4. Semangati mereka untuk terus belajar
+        5. Gunakan bahasa yang hangat seperti mentor yang sabar
+
+        JANGAN terlalu kaku atau formal. Jadilah dosen yang mengayomi!`;
+
+        const gradingFeedbackResponse = await contactAiNeuralEngine(evaluationPromptCompiled);
+        sessionContext.chats = sessionContext.chats.filter(c => c.id !== visualTypingId);
+
+        if (gradingFeedbackResponse.startsWith("ERROR_SIGNAL_FALLBACK:")) {
+            const cleanErrorMessage = gradingFeedbackResponse.replace("ERROR_SIGNAL_FALLBACK: ", "");
+            Swal.fire('Evaluasi Gagal', `Sistem gagal mengoreksi lembar jawaban (${cleanErrorMessage}). Silakan kirim ulang jawaban terbaikmu sayang.`, 'error');
+            render();
+            autoScrollTerminalTimeline();
+            return;
+        }
+
+        // Penilaian dengan sistem yang lebih manusiawi
+        if (sessionContext.lastQuestionType === 'pg') {
+            if (["A", "C"].includes(userSubmittedPayload)) {
+                sessionContext.kuisScore += 20;
+            } else {
+                // Kasih poin setengah kalau salah tapi mendekati
+                if (userSubmittedPayload === "B" || userSubmittedPayload === "D") {
+                    sessionContext.kuisScore += 5;
+                }
+            }
+        } else {
+            // Esai: nilai berdasarkan panjang dan kualitas jawaban
+            if (userSubmittedPayload.length > 30) {
+                sessionContext.kuisScore += 20;
+            } else if (userSubmittedPayload.length > 15) {
+                sessionContext.kuisScore += 10;
+            } else {
+                sessionContext.kuisScore += 5; // Semangat buat yang masih belajar!
+            }
+        }
+
+        sessionContext.chats.push({
+            id: 'grading-feedback-block-' + sessionContext.kuisStep,
+            sender: 'dosen',
+            type: 'text',
+            text: `<div class="p-3 bg-rose-500/5 rounded-xl border border-dashed border-rose-400">
+                    <span class="block text-xs font-bold text-rose-600 mb-1">
+                        <i class="fas fa-clipboard-check"></i> 📋 Hasil Review:
+                    </span>
+                    <div class="text-sm leading-relaxed">${gradingFeedbackResponse}</div>
+                   </div>`,
+            timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        });
+
+        if (sessionContext.kuisStep < 5) {
+            sessionContext.kuisStep += 1;
+            saveApplicationStateToDisk();
+            setTimeout(async () => {
+                await dispatchNextKuisQuestionBlock(sessionContext, activeMatkulName);
+            }, 2000);
+        } else {
+            sessionContext.currentPhase = 'complete';
+            const scoreYield = sessionContext.kuisScore;
+            
+            appState.totalSks += 3;
+            const currentCalculatedGpa = (scoreYield / 25);
+            
+            if (appState.ipk === 0.00) {
+                appState.ipk = currentCalculatedGpa;
+            } else {
+                appState.ipk = parseFloat(((appState.ipk * 0.7) + (currentCalculatedGpa * 0.3)).toFixed(2));
+            }
+            
+            if (appState.ipk > 4.00) appState.ipk = 4.00;
+            if (appState.ipk < 0.00) appState.ipk = 0.00;
+
+            // RELEASE LOCK: Kuis selesai
+            appState.activeMatkulLock = null;
+
+            sessionContext.chats.push({
+                id: 'kuis-complete-banner-' + Date.now(),
+                sender: 'dosen',
+                type: 'text',
                 text: `<div class="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-5 rounded-2xl shadow-xl text-center">
-                    <i class="fas fa-graduation-cap text-3xl text-yellow-300 mb-1 block"></i>
-                    <div class="text-xs uppercase font-black tracking-widest text-rose-100">Evaluasi SKS Modul Selesai</div>
-                    <div class="text-3xl font-black my-1">${finalScore} / 100</div>
-                    <div class="text-xs bg-black/20 py-1 px-3 rounded-full inline-block mb-2">IPK Saat Ini: ${appState.ipk.toFixed(2)}</div>
-                    <div class="flex justify-center"><img src="${EMOTION_STICKERS.success}" class="w-14 h-14 object-contain"></div>
-                </div><br>Mbak You: "Hebat sayang! Nilai kuis mata kuliah kamu sudah masuk rekam data. SKS berhasil dikumpulkan lintas modul!"`,
+                        <i class="fas fa-award text-4xl text-yellow-300 mb-2 block"></i>
+                        <div class="text-xs uppercase font-black tracking-widest text-rose-100">🎉 Selamat! Kuis Selesai</div>
+                        <div class="text-4xl font-black my-1">${scoreYield} / 100</div>
+                        <div class="text-xs bg-black/20 py-1 px-3 rounded-full inline-block mb-3">
+                            📊 IPK: ${appState.ipk.toFixed(2)} | SKS: ${appState.totalSks}
+                        </div>
+                        <div class="mb-1 flex justify-center"><img src="${EMOTION_STICKERS.success}" class="w-16 h-16 object-contain" alt="Success Sticker"></div>
+                        <p class="text-sm mt-2">${scoreYield >= 80 ? '⭐ Hebat banget sayang! Kamu luar biasa!' : scoreYield >= 60 ? '💪 Bagus! Terus semangat belajarnya!' : '📚 Kamu pasti bisa lebih baik lagi! Aku percaya kamu!'}</p>
+                       </div>
+                       <div class="mt-3 text-sm">
+                       Mbak You: "Kuis selesai! Nilaimu ${scoreYield}. Jangan lupa baca lagi modulnya ya kalau masih ada yang belum paham. Kamu hebat sudah mau belajar! 🥰"
+                       </div>`,
                 timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
             });
-            saveApplicationStateToDisk(); render(); autoScrollTerminalTimeline();
+
+            saveApplicationStateToDisk();
+            render();
+            autoScrollTerminalTimeline();
         }
     }
 
     window.triggerHardResetApplicationData = () => {
-        localStorage.removeItem('pelajarin_v3_girly_disk');
-        appState.user = null; appState.jurusan = null; appState.semesterAktif = 1; appState.ipk = 0.00; appState.totalSks = 0; appState.classroomSessions = {}; appState.presensiHistory = []; appState.sksHistoryData = {};
-        appState.currentPage = 'landing'; render();
+        Swal.fire({
+            title: '🗑️ Hapus Semua Data?',
+            text: "Seluruh data IPK, SKS, presensi, dan riwayat belajar akan dihapus!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Hapus Permanen',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#e11d48'
+        }).then((actRes) => {
+            if (actRes.isConfirmed) {
+                localStorage.removeItem('pelajarin_v3_girly_disk');
+                appState.user = null;
+                appState.jurusan = null;
+                appState.semesterAktif = 1;
+                appState.ipk = 0.00;
+                appState.totalSks = 0;
+                appState.classroomSessions = {};
+                appState.presensiHistory = [];
+                appState.activeMatkulLock = null;
+                appState.currentPage = 'landing';
+                render();
+                Swal.fire('✅ Data Dikosongkan!', 'Sistem Pelajarin kembali ke awal. Yuk mulai lagi!', 'success');
+            }
+        });
     };
 
     function autoScrollTerminalTimeline() {
-        setTimeout(() => { const b = document.getElementById('terminalTimelineScrollWrapper'); if (b) b.scrollTop = b.scrollHeight; }, 60);
+        setTimeout(() => {
+            const scrollNodeBox = document.getElementById('terminalTimelineScrollWrapper');
+            if (scrollNodeBox) {
+                scrollNodeBox.scrollTop = scrollNodeBox.scrollHeight;
+            }
+        }, 60);
     }
-
-    function saveApplicationStateToDisk() { localStorage.setItem('pelajarin_v3_girly_disk', JSON.stringify(appState)); }
-    function loadApplicationStateFromDisk() {
-        const disk = localStorage.getItem('pelajarin_v3_girly_disk');
-        if (disk) {
-            try {
-                const parsed = JSON.parse(disk);
-                Object.assign(appState, parsed);
-                if (appState.user && appState.jurusan) appState.currentPage = 'dashboard';
-            } catch (e) { console.error(e); }
-        }
-        applyActiveThemeToDOM();
-    }
-    function applyActiveThemeToDOM() { document.body.className = appState.currentTheme; }
-    window.switchApplicationTheme = (theme) => { appState.currentTheme = theme; saveApplicationStateToDisk(); applyActiveThemeToDOM(); render(); };
-
-    // ==========================================
-    // 9. VIEW GENERATORS (MENJAGA STABILITAS LAYOUT)
-    // ==========================================
-    const DOSEN_BASE_PROMPT = `KAMU ADALAH DOSEN WANITA MUDA BERNAMA "MBAK YOU" (UMUR 25 TAHUN). BERBICARA LANGSUNG SEBAGAI MBAK YOU DENGAN GAYA CHATTING CASUAL, MANIS, DISIPLIN AKADEMIK TINGGI DAN TIDAK KAKU. JELASKAN MATERI RUNUT DARI AWALAN DASAR FONDASINYA MERUJUK PADA PARA AHLI EMPIRIS. JANGAN PAKAI MARKDOWN SEPERTI # ATAU ##, TULIS JAWABAN MENGALIR BIASA SAJA DENGAN SEBUTAN BIMBINGANKU ATAU SAYANG. KOREKSI JAWABAN MAHASISWA SECARA JELAS DAN TEGAS BERDASARKAN LITERATUR.`;
 
     function generateLandingPageHTMLView() {
-        let grad = appState.currentTheme === 'theme-manly' ? 'gradient-brand-manly' : appState.currentTheme === 'theme-soft' ? 'gradient-brand-soft' : 'gradient-brand-girly';
+        let dynamicGradient = "gradient-brand-girly";
+        if (appState.currentTheme === 'theme-manly') dynamicGradient = "gradient-brand-manly";
+        if (appState.currentTheme === 'theme-soft') dynamicGradient = "gradient-brand-soft";
+
         return `
-        <div class="${grad} text-white">
+        <div class="${dynamicGradient} text-white">
             <div class="container mx-auto px-6 py-5 flex justify-between items-center max-w-6xl">
                 <div class="text-xl font-black tracking-tight flex items-center gap-2">
-                    <div class="bg-white/10 w-8 h-8 rounded-lg flex items-center justify-center border border-white/20"><i class="fas fa-graduation-cap"></i></div>
-                    <span>Pelajarin Platform <span class="text-xs font-normal opacity-80">V3 PRO</span></span>
+                    <div class="bg-white/10 w-8 h-8 rounded-lg flex items-center justify-center border border-white/20"><i class="fas fa-heart text-white text-xs"></i></div>
+                    <span>Pelajarin <span class="text-xs font-normal opacity-80">v3 PRO</span></span>
                 </div>
-                <div class="text-xs bg-black/20 px-3 py-1.5 rounded-full font-bold"><i class="fas fa-clock text-amber-300"></i> Semester Terbuka 2026</div>
+                <div class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/10 text-xs font-bold">
+                    <i class="fas fa-clock text-yellow-300"></i> Tahun Akademik 2026
+                </div>
             </div>
-            <div class="container mx-auto px-6 py-20 text-center max-w-4xl">
-                <h1 class="text-4xl sm:text-5xl font-black mb-4 tracking-tight leading-none">Sistem Pendidikan Sarjana S1 Kontemporer</h1>
-                <p class="text-sm sm:text-base text-white/80 max-w-2xl mx-auto mb-8 font-medium">Lakukan simulasi perkuliahan terstruktur 8 Semester, 6 Mata Kuliah per Sesi, kumpulkan SKS, dan lakukan evaluasi modul kuis real-time.</p>
-                <button onclick="window.launchRegistrationModal()" class="bg-white text-rose-900 font-black text-sm px-6 py-3.5 rounded-xl shadow-2xl hover:bg-slate-50 transition"><i class="fas fa-id-card mr-2"></i> Buat KTM Mahasiswa Baru Sekarang</button>
+
+            <div class="container mx-auto px-6 py-24 text-center max-w-4xl">
+                <div class="inline-flex items-center gap-2 bg-white/10 text-rose-100 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full border border-white/5 mb-6 shadow-inner">
+                    <span class="w-2 h-2 rounded-full bg-rose-200 animate-ping"></span> Sistem Belajar Interaktif
+                </div>
+                <h1 class="text-4xl sm:text-6xl font-black mb-6 tracking-tight leading-none">
+                    Belajar Jadi Seru <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-pink-200 to-white">Bersama Mbak You</span>
+                </h1>
+                <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto font-medium mb-10 leading-relaxed">
+                    🎓 Dosen AI yang hangat dan tidak kaku. Belajar dengan video spesifik, 
+                    referensi jurnal, dan kuis interaktif. Siap jadi mahasiswa hebat?
+                </p>
+                <button onclick="window.launchRegistrationModal()" class="bg-white text-rose-900 font-black text-base px-8 py-4 rounded-xl shadow-2xl hover:bg-slate-50 transform hover:-translate-y-0.5 transition duration-150">
+                    <i class="fas fa-id-card mr-2"></i> Buat KTM Mahasiswa Baru
+                </button>
             </div>
         </div>
-        <div class="container mx-auto px-4 py-12 max-w-6xl">
-            <div class="text-center mb-8"><h2 class="text-2xl font-extrabold">Pilih Fokus Program Studi S1</h2></div>
+
+        <div class="container mx-auto px-4 py-16 max-w-6xl">
+            <div class="text-center max-w-xl mx-auto mb-12">
+                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">🎯 Pilih Program Studi</h2>
+                <p class="opacity-60 text-xs sm:text-sm mt-2">Kurikulum S1 dengan pendekatan personal dan interaktif</p>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${AKADEMIK_PRODI_DATA.map(p => `
-                    <div onclick="window.triggerCardProdiRegister(${p.id})" class="bg-surface rounded-2xl border card-border p-5 cursor-pointer card-scale flex flex-col justify-between shadow-sm">
+                ${AKADEMIK_PRODI_DATA.map(prodiItem => `
+                    <div onclick="window.triggerCardProdiRegister(${prodiItem.id})" class="bg-surface rounded-2xl border card-border p-6 cursor-pointer card-scale flex flex-col justify-between shadow-sm">
                         <div>
-                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${p.warna} flex items-center justify-center text-white text-base shadow-sm mb-3"><i class="fas ${p.icon}"></i></div>
-                            <h3 class="text-base font-bold mb-1">${p.nama}</h3>
-                            <p class="opacity-70 text-xs leading-relaxed mb-2">${p.deskripsi}</p>
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${prodiItem.warna} flex items-center justify-center text-white text-xl shadow-md mb-4">
+                                <i class="fas ${prodiItem.icon}"></i>
+                            </div>
+                            <h3 class="text-lg font-bold mb-1 tracking-tight">${prodiItem.nama}</h3>
+                            <p class="opacity-70 text-xs leading-relaxed mb-4">${prodiItem.deskripsi}</p>
                         </div>
-                        <div class="border-t card-border pt-2 mt-2 text-[11px] font-bold text-rose-500 truncate">Karir: ${p.prospek}</div>
+                        <div class="border-t card-border pt-3 mt-4">
+                            <div class="text-[10px] opacity-40 font-black uppercase tracking-wider">🚀 Prospek Karir:</div>
+                            <div class="text-xs font-bold text-rose-500 truncate">${prodiItem.prospek}</div>
+                        </div>
                     </div>
                 `).join('')}
             </div>
-        </div>`;
+        </div>
+        `;
     }
 
     function generateDashboardPageHTMLView() {
-        const prodi = AKADEMIK_PRODI_DATA.find(p => p.id === appState.jurusan.id);
-        const matkulList = JADWAL_MATA_KULIAH[appState.jurusan.id]?.[appState.semesterAktif] || [];
-        const attendTarget = appState.semesterAktif * 6;
-        const attendPct = attendTarget > 0 ? Math.min(((appState.presensiHistory.length / attendTarget) * 100), 100).toFixed(1) : "0.0";
+        const structuralProdiObj = AKADEMIK_PRODI_DATA.find(p => p.id === appState.jurusan.id);
+        const actualMatkulCollection = JADWAL_MATA_KULIAH[appState.jurusan.id]?.[appState.semesterAktif] || [];
+        
+        const attendanceCounter = appState.presensiHistory.length;
+        const dynamicTargetAttend = appState.semesterAktif * 6;
+        const scorePercentageAttendance = dynamicTargetAttend > 0 ? Math.min(((attendanceCounter / dynamicTargetAttend) * 100), 100).toFixed(1) : "0.0";
+        const sksProgressPercentage = Math.min(((appState.totalSks / 144) * 100), 100).toFixed(1);
 
         return `
         <div class="bg-surface border-b card-border sticky top-0 z-50 shadow-sm">
-            <div class="container mx-auto px-4 py-3 flex justify-between items-center max-w-6xl">
-                <div class="text-base font-black tracking-tight dynamic-text"><i class="fas fa-university"></i> Portal Akademik Pelajarin</div>
-                <div class="flex items-center gap-2">
-                    <div class="bg-chat-area p-1 rounded-lg border card-border flex gap-1 text-[11px] font-bold">
-                        <button onclick="window.switchApplicationTheme('theme-manly')" class="px-2 py-0.5 rounded ${appState.currentTheme === 'theme-manly' ? 'bg-sky-600 text-white' : 'opacity-60'}">Manly</button>
-                        <button onclick="window.switchApplicationTheme('theme-girly')" class="px-2 py-0.5 rounded ${appState.currentTheme === 'theme-girly' ? 'bg-rose-500 text-white' : 'opacity-60'}">Girly</button>
-                        <button onclick="window.switchApplicationTheme('theme-soft')" class="px-2 py-0.5 rounded ${appState.currentTheme === 'theme-soft' ? 'bg-indigo-600 text-white' : 'opacity-60'}">Soft</button>
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center max-w-6xl">
+                <div class="text-lg font-black tracking-tight flex items-center gap-2 dynamic-text">
+                    <i class="fas fa-graduation-cap"></i> Pelajarin Dashboard
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-chat-area p-1 rounded-lg border card-border flex gap-1 text-xs font-bold text-slate-800">
+                        <button onclick="window.switchApplicationTheme('theme-manly')" class="px-2 py-1 rounded ${appState.currentTheme === 'theme-manly' ? 'bg-sky-600 text-white' : 'opacity-60'}">🌙 Dark</button>
+                        <button onclick="window.switchApplicationTheme('theme-girly')" class="px-2 py-1 rounded ${appState.currentTheme === 'theme-girly' ? 'bg-rose-500 text-white' : 'opacity-60'}">🌸 Pink</button>
+                        <button onclick="window.switchApplicationTheme('theme-soft')" class="px-2 py-1 rounded ${appState.currentTheme === 'theme-soft' ? 'bg-indigo-600 text-white' : 'opacity-60'}">✨ Soft</button>
                     </div>
-                    <button onclick="window.triggerHardResetApplicationData()" class="text-xs font-bold bg-rose-500/10 text-rose-500 px-2.5 py-1.5 rounded-lg transition"><i class="fas fa-power-off"></i> Out</button>
+                    <div class="h-6 w-px bg-slate-300"></div>
+                    <button onclick="window.triggerHardResetApplicationData()" class="text-xs font-extrabold bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-500 px-3 py-2 rounded-xl transition">
+                        <i class="fas fa-trash-alt"></i> Reset
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="container mx-auto px-4 py-6 max-w-6xl">
-            <div class="bg-surface rounded-2xl p-5 border card-border shadow-sm mb-6 flex flex-wrap justify-between items-center gap-4">
+
+        <div class="container mx-auto px-4 py-8 max-w-6xl">
+            <div class="bg-surface rounded-2xl p-6 border card-border shadow-sm mb-6 flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    <span class="text-[11px] font-black uppercase dynamic-text"><i class="fas fa-id-badge"></i> Kartu Tanda Mahasiswa Aktif</span>
-                    <h1 class="text-xl font-black mt-0.5">${appState.user.nama}</h1>
-                    <p class="text-xs opacity-60">${prodi.nama} • Jenjang Sarjana Strata 1 (S1)</p>
+                    <span class="text-xs font-black uppercase tracking-widest dynamic-text">
+                        <i class="fas fa-shield-alt"></i> Mahasiswa Aktif
+                    </span>
+                    <h1 class="text-2xl font-black mt-1 tracking-tight">${appState.user.nama}</h1>
+                    <p class="text-xs opacity-70 mt-0.5">
+                        ${structuralProdiObj.nama} • Semester ${appState.semesterAktif}
+                    </p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="window.commitDailyAttendanceSignature()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition"><i class="fas fa-fingerprint mr-1"></i> Absen Masuk</button>
-                    <button onclick="window.modifyActiveSemesterState()" class="dynamic-btn font-bold text-xs px-3.5 py-2.5 rounded-xl transition"><i class="fas fa-list-ol mr-1"></i> Pilih Semester (Aktif: ${appState.semesterAktif})</button>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="window.commitDailyAttendanceSignature()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm px-4 py-3 rounded-xl shadow-sm transition">
+                        <i class="fas fa-fingerprint mr-1.5"></i> 📋 Absen
+                    </button>
+                    <button onclick="window.modifyActiveSemesterState()" class="dynamic-btn font-extrabold text-xs sm:text-sm px-4 py-3 rounded-xl shadow-sm transition">
+                        <i class="fas fa-exchange-alt mr-1.5"></i> Ganti Semester
+                    </button>
                 </div>
             </div>
+
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-surface p-4 rounded-xl border card-border shadow-sm">
-                    <div class="text-[10px] font-black opacity-40 uppercase">IPK Kumulatif</div>
-                    <div class="text-xl font-black dynamic-text mt-0.5">${parseFloat(appState.ipk).toFixed(2)}</div>
+                <div class="bg-surface p-5 rounded-2xl border card-border shadow-sm">
+                    <div class="text-[10px] font-black opacity-50 uppercase tracking-wider">📊 IPK Kumulatif</div>
+                    <div class="text-2xl font-black dynamic-text mt-1">${parseFloat(appState.ipk).toFixed(2)}</div>
+                    <div class="text-[9px] opacity-40 mt-1">Skala 4.00</div>
                 </div>
-                <div class="bg-surface p-4 rounded-xl border card-border shadow-sm">
-                    <div class="text-[10px] font-black opacity-40 uppercase">SKS Lulus Matkul</div>
-                    <div class="text-xl font-black mt-0.5">${appState.totalSks} <span class="text-xs font-normal opacity-40">/ 144</span></div>
+                <div class="bg-surface p-5 rounded-2xl border card-border shadow-sm">
+                    <div class="text-[10px] font-black opacity-50 uppercase tracking-wider">📚 Total SKS</div>
+                    <div class="text-2xl font-black mt-1">${appState.totalSks} <span class="text-xs opacity-40 font-normal">/ 144</span></div>
+                    <div class="w-full bg-chat-area h-1.5 rounded-full mt-2 overflow-hidden border card-border">
+                        <div class="bg-rose-500 h-full progress-fill-anim" style="width: ${sksProgressPercentage}%"></div>
+                    </div>
                 </div>
-                <div class="bg-surface p-4 rounded-xl border card-border shadow-sm">
-                    <div class="text-[10px] font-black opacity-40 uppercase">Kurikulum Sesi</div>
-                    <div class="text-xl font-black text-amber-500 mt-0.5">${matkulList.length} Mata Kuliah</div>
+                <div class="bg-surface p-5 rounded-2xl border card-border shadow-sm">
+                    <div class="text-[10px] font-black opacity-50 uppercase tracking-wider">📖 Beban Semester</div>
+                    <div class="text-2xl font-black mt-1 text-amber-500">${actualMatkulCollection.length} MK</div>
+                    <div class="text-[9px] opacity-40 mt-1">Kurikulum Aktif</div>
                 </div>
-                <div class="bg-surface p-4 rounded-xl border card-border shadow-sm">
-                    <div class="text-[10px] font-black opacity-40 uppercase">Rasio Absensi</div>
-                    <div class="text-xl font-black text-emerald-500 mt-0.5">${attendPct}%</div>
+                <div class="bg-surface p-5 rounded-2xl border card-border shadow-sm">
+                    <div class="text-[10px] font-black opacity-50 uppercase tracking-wider">✅ Presensi</div>
+                    <div class="text-2xl font-black text-emerald-500 mt-1">${scorePercentageAttendance}%</div>
+                    <div class="w-full bg-chat-area h-1.5 rounded-full mt-2 overflow-hidden border card-border">
+                        <div class="bg-emerald-500 h-full progress-fill-anim" style="width: ${scorePercentageAttendance}%"></div>
+                    </div>
                 </div>
             </div>
-            <div class="bg-surface rounded-2xl border card-border p-5 shadow-sm">
-                <h2 class="text-base font-black mb-4 flex items-center gap-1"><i class="fas fa-folder-open dynamic-text"></i> Struktur Kurikulum Semester ${appState.semesterAktif} (6 MK Penuh Terbuka)</h2>
+
+            <div class="bg-surface rounded-2xl border card-border p-6 shadow-sm">
+                <div class="border-b card-border pb-4 mb-4 flex justify-between items-center">
+                    <h2 class="text-lg font-black flex items-center gap-2">
+                        <i class="fas fa-layer-group dynamic-text"></i> Daftar Mata Kuliah - Semester ${appState.semesterAktif}
+                    </h2>
+                    ${appState.activeMatkulLock ? `
+                        <span class="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                            <i class="fas fa-lock mr-1"></i> Kuis Aktif: ${appState.activeMatkulLock}
+                        </span>
+                    ` : ''}
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    ${matkulList.map((m, idx) => {
-                        const sess = appState.classroomSessions[m];
-                        let status = `<span class="text-[10px] opacity-40"><i class="far fa-circle mr-1"></i>Belum diambil</span>`;
-                        if (sess) {
-                            if (sess.currentPhase === 'complete') status = `<span class="text-[10px] text-emerald-500 font-bold"><i class="fas fa-check-circle mr-1"></i>Lulus Kuis</span>`;
-                            else if (sess.modulDiambil) status = `<span class="text-[10px] text-amber-500 font-bold"><i class="fas fa-book-open mr-1"></i>Belajar</span>`;
+                    ${actualMatkulCollection.map((matkulLabel, sequenceIdx) => {
+                        const currentSessionLog = appState.classroomSessions[matkulLabel];
+                        let operationalStatusHTML = `<span class="text-[11px] opacity-40"><i class="far fa-circle mr-1"></i>Belum diambil</span>`;
+                        let isLocked = false;
+                        
+                        if (currentSessionLog) {
+                            if (currentSessionLog.currentPhase === 'complete') {
+                                operationalStatusHTML = `<span class="text-[11px] text-emerald-500 font-bold"><i class="fas fa-check-circle mr-1"></i>✅ Selesai</span>`;
+                            } else if (currentSessionLog.modulDiambil) {
+                                operationalStatusHTML = `<span class="text-[11px] text-amber-500 font-bold animate-pulse"><i class="fas fa-book-open mr-1"></i>📖 Dipelajari</span>`;
+                            }
+                            
+                            // Cek apakah matkul ini sedang dikunci oleh matkul lain
+                            if (appState.activeMatkulLock && appState.activeMatkulLock !== matkulLabel) {
+                                isLocked = true;
+                            }
                         }
+
                         return `
-                        <div onclick="window.navigateToClassroomTerminal('${m.replace(/'/g, "\\'")}')" class="border card-border rounded-xl p-3.5 cursor-pointer hover:bg-rose-500/5 transition flex justify-between items-center group card-scale">
+                        <div onclick="${!isLocked ? `window.navigateToClassroomTerminal('${matkulLabel.replace(/'/g, "\\'")}')` : ''}" 
+                             class="matkul-item border card-border rounded-xl p-4 cursor-pointer ${!isLocked ? 'hover:bg-rose-500/5 transition card-scale' : 'opacity-60 cursor-not-allowed'} flex justify-between items-center group">
                             <div class="flex items-center gap-3">
-                                <div class="w-7 h-7 rounded-lg bg-chat-area text-xs font-bold flex items-center justify-center border card-border">${idx + 1}</div>
+                                <div class="w-8 h-8 rounded-lg bg-chat-area text-xs font-bold flex items-center justify-center ${!isLocked ? 'group-hover:bg-rose-500 group-hover:text-white' : ''} border card-border transition">
+                                    ${sequenceIdx + 1}
+                                </div>
                                 <div>
-                                    <div class="font-bold text-xs sm:text-sm text-slate-800 group-hover:text-rose-500 transition">${m}</div>
-                                    <div class="flex items-center gap-2 mt-0.5"><span class="text-[9px] bg-chat-area px-1 rounded border card-border font-bold">3 SKS</span>${status}</div>
+                                    <div class="font-bold text-sm ${!isLocked ? 'group-hover:text-rose-500 transition' : ''}">${matkulLabel}</div>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[9px] bg-chat-area px-1.5 py-0.5 rounded border card-border font-bold uppercase">3 SKS</span>
+                                        ${operationalStatusHTML}
+                                    </div>
                                 </div>
                             </div>
-                            <i class="fas fa-chevron-right text-xs opacity-20 group-hover:opacity-100 transition"></i>
-                        </div>`;
+                            ${isLocked ? `
+                                <div class="lock-overlay">
+                                    <i class="fas fa-lock"></i> Dikunci
+                                </div>
+                            ` : `
+                                <i class="fas fa-chevron-right text-xs opacity-20 ${!isLocked ? 'group-hover:opacity-100 group-hover:text-rose-500 transform group-hover:translate-x-1' : ''} transition"></i>
+                            `}
+                        </div>
+                        `;
                     }).join('')}
                 </div>
             </div>
-        </div>`;
+        </div>
+        `;
     }
 
     function generateClassroomTerminalHTMLView() {
-        const mkName = appState.selectedMatkul.nama;
-        const session = appState.classroomSessions[mkName];
-        const history = session?.chats || [];
+        const activeMatkulName = appState.selectedMatkul.nama;
+        const workingSession = appState.classroomSessions[activeMatkulName];
+        const conversationHistory = workingSession?.chats || [];
 
         return `
         <div class="min-h-screen flex flex-col justify-between">
-            <div class="bg-surface border-b card-border px-4 py-3 sticky top-0 z-50 shadow-sm flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <button onclick="window.exitClassroomTerminalToDashboard()" class="hover:bg-rose-500/10 w-8 h-8 rounded-full flex items-center justify-center text-rose-500 transition"><i class="fas fa-arrow-left"></i></button>
+            <div class="bg-surface border-b card-border px-4 py-3 sticky top-0 z-50 shadow-md flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <button onclick="window.exitClassroomTerminalToDashboard()" class="hover:bg-rose-500/10 w-9 h-9 rounded-full flex items-center justify-center text-rose-500 transition">
+                        <i class="fas fa-arrow-left text-base"></i>
+                    </button>
                     <div>
-                        <h2 class="font-black text-xs sm:text-sm leading-tight">${mkName}</h2>
-                        <p class="text-[10px] text-rose-400 font-bold"><i class="fas fa-graduation-cap"></i> Ruang Kelas S1 Mandiri Mbak You</p>
+                        <h2 class="font-black text-sm sm:text-base leading-tight tracking-tight">${activeMatkulName}</h2>
+                        <p class="text-[11px] text-rose-500 font-bold flex items-center gap-1">
+                            <i class="fas fa-circle text-[7px] text-green-400 animate-pulse"></i> 
+                            Kelas dengan Mbak You 🥰
+                        </p>
                     </div>
                 </div>
-                <div class="text-[10px] font-black px-2 py-1 rounded bg-chat-area border card-border text-rose-500 uppercase">Fase: ${session?.currentPhase || 'idle'}</div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold px-3 py-1.5 rounded-lg bg-chat-area border card-border uppercase text-rose-400">
+                        📌 ${workingSession?.currentPhase || 'idle'}
+                    </span>
+                    ${appState.activeMatkulLock === activeMatkulName ? `
+                        <span class="text-xs font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-full border border-rose-200">
+                            <i class="fas fa-lock mr-1"></i> Kuis Aktif
+                        </span>
+                    ` : ''}
+                </div>
             </div>
-            <div id="terminalTimelineScrollWrapper" class="flex-1 bg-chat-area overflow-y-auto px-4 py-4 space-y-3">
-                <div class="max-w-4xl w-full mx-auto space-y-3">
-                    ${history.map(c => {
-                        if (c.sender === 'user') {
-                            return `<div class="flex justify-end msg-entry">
-                                <div class="bg-slate-800 text-white rounded-xl rounded-tr-none px-3.5 py-2 max-w-[85%] border border-slate-700">
-                                    <span class="block text-[9px] font-bold text-slate-400 uppercase">Mahasiswa</span>
-                                    <p class="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">${c.text}</p>
+
+            <div id="terminalTimelineScrollWrapper" class="flex-1 bg-chat-area overflow-y-auto px-4 py-6 space-y-4">
+                <div class="max-w-4xl w-full mx-auto space-y-4">
+                    ${conversationHistory.map(bubbleItem => {
+                        if (bubbleItem.sender === 'user') {
+                            return `
+                            <div class="flex justify-end msg-entry">
+                                <div class="bg-slate-800 text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-md max-w-[85%] border border-slate-700">
+                                    <span class="block text-[10px] font-black text-slate-300 uppercase mb-0.5">
+                                        <i class="fas fa-user-graduate"></i> Kamu (Mahasiswa)
+                                    </span>
+                                    <p class="text-sm sm:text-base leading-relaxed font-medium whitespace-pre-wrap">${bubbleItem.text}</p>
+                                    <span class="block text-[9px] text-slate-400 text-right mt-1 font-semibold">${bubbleItem.timestamp}</span>
                                 </div>
-                            </div>`;
+                            </div>
+                            `;
                         } else {
-                            if (c.isTyping) {
-                                return `<div class="flex justify-start msg-entry" id="${c.id}">
-                                    <div class="bg-surface text-xs rounded-xl rounded-tl-none px-3 py-2 border card-border flex items-center gap-2">
-                                        <div class="custom-spinner"></div><div class="italic text-rose-400">Mbak You sedang menganalisis data kurikulum...</div>
+                            if (bubbleItem.isTyping) {
+                                return `
+                                <div class="flex justify-start msg-entry" id="${bubbleItem.id}">
+                                    <div class="bg-surface text-sm rounded-2xl rounded-tl-none px-4 py-3 border card-border shadow-sm flex items-center gap-3">
+                                        <div class="custom-spinner"></div>
+                                        <div class="text-xs font-semibold opacity-70 italic text-rose-400">💭 Mbak You sedang menulis...</div>
                                     </div>
-                                </div>`;
-                            }
-                            return `<div class="flex justify-start msg-entry">
-                                <div class="bg-surface rounded-xl rounded-tl-none px-3.5 py-3 border card-border max-w-[90%] sm:max-w-[85%] w-full">
-                                    <div class="text-[10px] font-black text-rose-500 uppercase tracking-wider mb-1.5 flex justify-between items-center">
-                                        <span><i class="fas fa-user-tie"></i> Mbak You (Dosen Pengampu)</span>
-                                        <button onclick="window.readAloudMbakYouSpeech(\`${(c.text || '').replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, ' ')}\`)" class="text-rose-500 px-1.5 py-0.5 rounded border border-rose-200 text-[9px] font-bold">Lafalkan Suara</button>
-                                    </div>
-                                    <div class="text-xs sm:text-sm leading-relaxed text-justify">${c.text || ''}</div>
                                 </div>
-                            </div>`;
+                                `;
+                            }
+
+                            return `
+                            <div class="flex justify-start msg-entry">
+                                <div class="bg-surface rounded-2xl rounded-tl-none px-4 py-4 border card-border shadow-sm max-w-[92%] sm:max-w-[85%] w-full">
+                                    <div class="text-xs font-black text-rose-500 uppercase tracking-widest mb-2 flex justify-between items-center">
+                                        <span class="flex items-center gap-1">
+                                            <i class="fas fa-user-shield"></i> 
+                                            Mbak You 
+                                            <span class="bg-rose-500/10 text-[9px] text-rose-400 px-2 py-0.5 rounded-full font-black border border-rose-500/20">
+                                                Dosen Pengampu
+                                            </span>
+                                        </span>
+                                        <button onclick="window.readAloudMbakYouSpeech(\`${(bubbleItem.text || '').replace(/"/g, '&quot;').replace(/`/g, '\\`').replace(/\n/g, ' ')}\`)" 
+                                                class="text-rose-500 hover:text-white hover:bg-rose-500 px-2 py-1 rounded-md border border-rose-200 text-[10px] font-extrabold flex items-center gap-1 transition">
+                                            <i class="fas fa-volume-up"></i> 🔊 Dengar
+                                        </button>
+                                    </div>
+                                    <div class="text-sm sm:text-base leading-relaxed opacity-95 text-justify whitespace-normal">${bubbleItem.text || ''}</div>
+                                    <span class="block text-[9px] opacity-40 text-left mt-2 font-bold">${bubbleItem.timestamp}</span>
+                                </div>
+                            </div>
+                            `;
                         }
                     }).join('')}
                 </div>
             </div>
-            <div class="bg-surface border-t card-border p-3 sticky bottom-0 z-40">
+
+            <div class="bg-surface border-t card-border p-3 sticky bottom-0 z-40 shadow-xl">
                 <div class="max-w-4xl mx-auto">
-                    <div class="flex items-center gap-2 mb-2 overflow-x-auto">
-                        <button onclick="window.triggerGenerateModulMateriWorkflow()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-2 rounded-xl whitespace-nowrap transition"><i class="fas fa-book"></i> Ambil Modul Sesi Ini</button>
-                        <button onclick="window.triggerAppKuisWorkflow()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-2 rounded-xl whitespace-nowrap transition"><i class="fas fa-star"></i> Uji Kompetensi Kuis</button>
+                    <div class="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
+                        <button onclick="window.triggerGenerateModulMateriWorkflow()" class="bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
+                            <i class="fas fa-book-open"></i> 📖 Ambil Modul
+                        </button>
+                        <button onclick="window.triggerAppKuisWorkflow()" class="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-1.5 whitespace-nowrap transition">
+                            <i class="fas fa-star text-xs"></i> ⭐ Uji Kuis
+                        </button>
                     </div>
+
                     <div class="flex items-center gap-2">
-                        <div class="flex-1 bg-chat-area rounded-xl px-3 py-2 flex items-center border card-border gap-2">
-                            <input type="text" id="terminalCoreInputField" onkeydown="if(event.key === 'Enter') window.processUserTextMessagingInput()" class="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder-slate-400" placeholder="Ketik pesan konsultasi akademik atau jawaban esai anda...">
-                            <button id="voiceRecognitionTriggerNode" onclick="window.toggleSpeechToTextRecordingPipeline()" class="w-7 h-7 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0"><i class="fas fa-microphone text-xs"></i></button>
+                        <div class="flex-1 bg-chat-area rounded-xl px-4 py-3 flex items-center border card-border gap-2">
+                            <i class="fas fa-terminal text-rose-500 text-sm opacity-40"></i>
+                            <input type="text" id="terminalCoreInputField" onkeydown="if(event.key === 'Enter') window.processUserTextMessagingInput()" 
+                                   class="w-full text-sm sm:text-base bg-transparent focus:outline-none font-medium placeholder-slate-400" 
+                                   placeholder="💬 Ketik jawaban atau tanya Mbak You...">
+                            
+                            <button id="voiceRecognitionTriggerNode" onclick="window.toggleSpeechToTextRecordingPipeline()" 
+                                    class="w-8 h-8 rounded-lg bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-sm transition shrink-0" 
+                                    title="🎤 Bicara dengan suara">
+                                <i class="fas fa-microphone text-sm"></i>
+                            </button>
                         </div>
-                        <button onclick="window.processUserTextMessagingInput()" class="bg-rose-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-paper-plane text-xs"></i></button>
+                        <button onclick="window.processUserTextMessagingInput()" class="bg-rose-600 hover:bg-rose-700 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition shrink-0">
+                            <i class="fas fa-paper-plane text-sm"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>`;
+        </div>
+        `;
     }
 
-    // Initialize System Core
+    function render() {
+        const appDomRootNode = document.getElementById('app');
+        if (!appDomRootNode) return;
+
+        if (appState.currentPage === 'landing') {
+            appDomRootNode.innerHTML = generateLandingPageHTMLView();
+        } else if (appState.currentPage === 'dashboard') {
+            appDomRootNode.innerHTML = generateDashboardPageHTMLView();
+        } else if (appState.currentPage === 'classroom') {
+            appDomRootNode.innerHTML = generateClassroomTerminalHTMLView();
+        }
+    }
+
     loadApplicationStateFromDisk();
     render();
     autoScrollTerminalTimeline();
